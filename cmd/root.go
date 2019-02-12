@@ -17,8 +17,9 @@ var rootCmd = &cobra.Command{
 	Long: `Bare-bones dashboard for managing chats with anyone, who needs help,
  with telegrambot interface`,
 	Run: func(cmd *cobra.Command, args []string) {
+		s := app.InitServer(nil, options)
+		s.Serve()
 		fmt.Println("hello world!")
-		// s := app.InitServer()
 		// Dashboard = InitSite(Env)
 		// if err := Dashboard.InitDatabase(); err != nil {
 		// 	fmt.Println("Something went wrong during database initialization: ", err)

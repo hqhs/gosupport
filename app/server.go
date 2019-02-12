@@ -19,15 +19,15 @@ type Options struct {
 
 // Server contains gosupport server state
 type Server struct {
-	r *chi.Mux
+	r chi.Router
 }
 
 // InitServer initialize new server instance with provided options & logger
-func InitServer(logger kitlog.Logger, o Options) (*Server, error) {
+func InitServer(logger kitlog.Logger, o Options) *Server {
 	if logger == nil {
 		logger = kitlog.NewNopLogger()
 	}
 	s := Server{}
 	s.InitRoutes(chi.NewRouter())
-	return &s, nil
+	return &s
 }
