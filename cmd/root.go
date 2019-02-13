@@ -4,12 +4,11 @@ import (
 	"os"
 	"fmt"
 
-	"github.com/hqhs/gosupport/app"
-
+	"github.com/hqhs/gosupport/internal"
 	"github.com/spf13/cobra"
 )
 
-var options = app.Options{}
+var options = internal.Options{}
 
 var rootCmd = &cobra.Command{
 	Use:   "support",
@@ -17,45 +16,36 @@ var rootCmd = &cobra.Command{
 	Long: `Bare-bones dashboard for managing chats with anyone, who needs help,
  with telegrambot interface`,
 	Run: func(cmd *cobra.Command, args []string) {
-		s := app.InitServer(nil, options)
-		s.Serve()
-		fmt.Println("hello world!")
-		// Dashboard = InitSite(Env)
-		// if err := Dashboard.InitDatabase(); err != nil {
-		// 	fmt.Println("Something went wrong during database initialization: ", err)
-		// 	os.Exit(1)
-		// }
-		// if err := Dashboard.InitBots(); err != nil {
-		// 	fmt.Println("Something went wrong during bots initialization: ", err)
-		// 	os.Exit(1)
-		// }
-		// if err := Dashboard.InitializeRouter(); err != nil {
-		// 	fmt.Println("Something went wrong during router initialization: ", err)
-		// 	os.Exit(1)
-		// }
-		// Dashboard.RunBots()
-		// Dashboard.RunSite()
+		cmd.Help()
+		os.Exit(1)
 	},
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(
+	serveCmd.PersistentFlags().StringVarP(
 		&options.Domain, "domain", "d", "localhost", "Domain to use in auth links etc.")
-	rootCmd.PersistentFlags().StringVarP(
+	serveCmd.PersistentFlags().StringVarP(
 		&options.Port, "port", "p", "8080", "Port to use with provided domain.")
-	rootCmd.PersistentFlags().StringVar(
+	serveCmd.PersistentFlags().StringVar(
 		&options.EmailServer, "smtp-server", "smtp.gmail.com:587",
 		"URL to smtp server with port.")
-	rootCmd.PersistentFlags().StringVar(
+	serveCmd.PersistentFlags().StringVar(
 		&options.EmailAddress, "smtp-address", "admin@gmail.com",
 		"Email address used to authenticate on server.")
-	rootCmd.PersistentFlags().StringVar(
+	serveCmd.PersistentFlags().StringVar(
 		&options.EmailPassword, "smtp-password", "s3cr3tpwd",
 		"Password for smtp authentication")
+	rootCmd.AddCommand(serveCmd)
 }
 
 // Execute executes cli commands
 func Execute() {
+	if root, err := os.Getwd(); err != nil {
+		fmt.Printf("Couldn't stat current directory, %v\n", err)
+		os.Exit(1)
+	} else {
+		options.Root = root
+	}
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

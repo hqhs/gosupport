@@ -1,4 +1,4 @@
-package app
+package internal
 
 import (
 	"net/http"
@@ -8,15 +8,16 @@ import (
 )
 
 // Serve starts http server
-func (s *Server) Serve() {
-
+func (s *Server) ServeRouter() {
+	s.logger.Log("status", "Starting serving routes")
+	http.ListenAndServe(s.port, s.router)
 }
 
 // InitRoutes initializes url schema. Separate function argument
 // for routes is used to escape bugs there server tries to init
 // routes without provided chi.Mux
 func (s *Server) InitRoutes(router chi.Router) {
-	s.r = router
+	s.router = router
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
