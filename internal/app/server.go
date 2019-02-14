@@ -20,6 +20,7 @@ type Options struct {
 	DatabaseURL   string
 	ServeStatic   bool
 	StaticFiles   string
+	DbOptions     DbOptions
 }
 
 // Server contains gosupport server state

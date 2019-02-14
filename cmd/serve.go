@@ -26,11 +26,18 @@ func init() {
 		&options.EmailPassword, "smtp-password", "s3cr3tpwd",
 		"Password for smtp authentication")
 	serveCmd.PersistentFlags().StringVar(
-		&options.DatabaseURL, "database", "", "Url to connect to get database access")
-	serveCmd.PersistentFlags().StringVar(
 		&options.StaticFiles, "static", "web/static", "Path to directory with static files")
 	serveCmd.PersistentFlags().BoolVar(
 		&options.ServeStatic, "serve-static", true, "Use project's router to serve static files")
+	serveCmd.PersistentFlags().StringVar(
+		&options.DbOptions.User, "dbuser", "postgres", "Database user")
+	serveCmd.PersistentFlags().StringVar(
+		&options.DbOptions.Password, "dbpassword", "", "Database password")
+	serveCmd.PersistentFlags().StringVar(
+		&options.DbOptions.Host, "dbhost", "localhost", "Database host")
+	serveCmd.PersistentFlags().StringVar(
+		&options.DbOptions.Port, "dbport", "5433", "Database port")
+	// TODO add dbtype
 }
 
 var serveCmd = &cobra.Command{
@@ -52,8 +59,12 @@ var serveCmd = &cobra.Command{
 		l.Log("templates", fmt.Sprintf("%+v", t.GetTemplates()))
 		m := app.NewMockMailer(t, l)
 		l.Log("msg", "Mock mailer is used")
-		db := app.NewMockDatabase()
-		l.Log("msg", "Mock database is used. Data is not persistent")
+		// db := app.NewMockDatabase()
+		// l.Log("msg", "Mock database is used. Data is not persistent")
+		db, err := app.NewGormDatabase(options.DbOptions)
+		if err != nil {
+			l.Log("panic", err)
+		}
 		if options.ServeStatic {
 			staticDir := filepath.Join(options.Root, options.StaticFiles)
 			if _, err = os.Stat(staticDir); os.IsNotExist(err) {

@@ -23,6 +23,7 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(serveCmd)
+	options.DbOptions = app.DbOptions{}
 }
 
 // Execute executes cli commands

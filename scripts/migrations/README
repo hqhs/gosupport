@@ -1,7 +1,8 @@
 Using alembic for database management
 ===
 
-After some research I've decided that Go ORMs are not that powerful
-after all. For faster development I'm going to use python's alembic.
-After first beta version migration scripts could be written by hand, 
-because we can't change schema more often then 1 time per minor release.
+After some research I've decided that Go ORMs are not that powerful after all
+and requires a lot of code to be written. For faster development I'm going to
+use python's alembic. After first beta version migration scripts could be
+written by hand, because we can't change schema more often then 1 time per minor
+release.
