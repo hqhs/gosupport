@@ -37,14 +37,15 @@ func init() {
 		&options.DbOptions.Host, "dbhost", "localhost", "Database host")
 	serveCmd.PersistentFlags().StringVar(
 		&options.DbOptions.Port, "dbport", "5433", "Database port")
+	serveCmd.PersistentFlags().StringVar(
+		&options.DbOptions.DbName, "dbname", "postgres", "Database name")
 	// TODO add dbtype
 }
 
 var serveCmd = &cobra.Command{
 	Use:   "serve",
-	Short: "Simple tech-support dashboard for in-company usage",
-	Long: `Yet bare-bones dashboard for managing chats with anyone, who needs help,
- with telegrambot interface`,
+	Short: "Start http server",
+	Long: `Initialize database, mailer, bots, and routes to start answering http requests`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 		// TODO allow user set logger level (better to do it globally)
@@ -64,10 +65,12 @@ var serveCmd = &cobra.Command{
 		db, err := app.NewGormDatabase(options.DbOptions)
 		if err != nil {
 			l.Log("panic", err)
+			os.Exit(1)
 		}
 		if options.ServeStatic {
 			staticDir := filepath.Join(options.Root, options.StaticFiles)
-			if _, err = os.Stat(staticDir); os.IsNotExist(err) {
+			_, err = os.Stat(staticDir)
+			if os.IsNotExist(err) {
 				l.Log("panic", err)
 			} else {
 				l.Log("StaticDir", staticDir)

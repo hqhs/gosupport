@@ -23,6 +23,7 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(serveCmd)
+	rootCmd.AddCommand(migrateCmd)
 	options.DbOptions = app.DbOptions{}
 }
 

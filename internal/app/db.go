@@ -29,13 +29,13 @@ type Database interface {
 }
 
 type GormDatabase struct {
-	db *gorm.DB
+	DB *gorm.DB
 }
 
 func NewGormDatabase(o DbOptions) (Database, error) {
 	switch o.DbType {
 	case Postgres:
-		url := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s", o.Host, o.Port, o.User, o.DbName, o.Password)
+		url := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable", o.Host, o.Port, o.User, o.DbName, o.Password)
 		db, err := gorm.Open("postgres", url)
 		return &GormDatabase{db}, err
 	default:

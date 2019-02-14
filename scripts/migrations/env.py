@@ -1,9 +1,12 @@
 from __future__ import with_statement
 
+import enum
+
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import pool, Column, String
+from sqlalchemy.ext.declarative import declarative_base
 
 from alembic import context
 
@@ -25,6 +28,20 @@ target_metadata = None
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+
+Base = declarative_base()
+
+class Admin(Base):
+    __tablename__ = 'admin'
+    email = Column(String(256), nullable=False)
+
+class User(Base):
+    __tablename__ = 'user'
+    email = Column(String(256), nullable=True)
+
+class Message(Base):
+    __tablename__ = 'message'
+    text = Column(String(4000), nullable=True)
 
 
 def run_migrations_offline():
