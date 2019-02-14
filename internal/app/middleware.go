@@ -2,8 +2,10 @@ package app
 
 import (
 	"net/http"
+	"fmt"
 
 	// "github.com/dgrijalva/jwt-go"
+	"github.com/go-chi/render"
 )
 
 // CORSMidlleware writer cors headers to requests
@@ -30,5 +32,28 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 func (s *Server) userCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r)
+	})
+}
+
+func (s *Server) RenderTemplate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			next.ServeHTTP(w, r)
+			return
+		}
+		var tmpl string
+		switch r.URL.String() {
+		case "/login":
+			tmpl = "login.tmpl"
+		case "/signin":
+			tmpl = "signin.tmpl"
+		case "/reset-password":
+			tmpl = "reset_password.tmpl"
+		}
+		if err := s.templator.Render(w, tmpl, nil); err != nil {
+			s.logger.Log("err", err, "then", fmt.Sprintf("during rendering %s template", tmpl))
+			render.Render(w, r, errInternal)
+		}
+		return
 	})
 }

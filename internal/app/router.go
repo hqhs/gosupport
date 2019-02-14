@@ -31,9 +31,10 @@ func (s *Server) InitRoutes(router chi.Router, static string) {
 		fileServer(router, "/static", http.Dir(static))
 	}
 
-	router.HandleFunc("/login", s.loginForm)
-	router.HandleFunc("/signin", s.signInForm)
-	router.HandleFunc("/reset-password", s.resetPasswordForm)
+	router.With(s.RenderTemplate).HandleFunc("/login", s.loginForm)
+	router.With(s.RenderTemplate).HandleFunc("/signin", s.signInForm)
+	router.With(s.RenderTemplate).HandleFunc("/reset-password", s.resetPasswordForm)
+
 
 	router.HandleFunc("/email/reset/{token}", emailResetRedirect)
 	router.Get("/email/signin/{token}", emailSignInRedirect)
