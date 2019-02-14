@@ -1,10 +1,42 @@
 package app
 
 import (
+	"fmt"
 	"net/http"
+	"net/mail"
+	"strings"
 
 	"github.com/go-chi/render"
 )
+
+type signInData struct {
+	Email     string
+	Password1 string
+	Password2 string
+}
+
+func (s *signInData) Bind(r *http.Request) error {
+	if err := r.ParseForm(); err != nil {
+		return err
+	}
+	// TODO additional checks
+	s.Email = r.Form.Get("email")
+	s.Password1 = r.Form.Get("password1")
+	s.Password2 = r.Form.Get("password2")
+	if len(s.Password1) < 12 || len(s.Password2) < 12 {
+		return fmt.Errorf("Minimal password length is 12 characters")
+	}
+	if len(s.Email) == 0 {
+		return fmt.Errorf("Fill in all required fields")
+	}
+	if _, err := mail.ParseAddress(s.Email); err != nil {
+		return fmt.Errorf("Provided email is not valid")
+	}
+	if strings.Compare(s.Password1, s.Password2) != 0 {
+		return fmt.Errorf("Passwords does not match")
+	}
+	return nil
+}
 
 //--
 // Error response payloads & renderers
@@ -47,5 +79,6 @@ func errRender(err error) render.Renderer {
 	}
 }
 
+var errInvalid = &errResponse{HTTPStatusCode: 400, StatusText: "Invalid request."}
 var errNotFound = &errResponse{HTTPStatusCode: 404, StatusText: "Resource not found."}
-var errInternal = &errResponse{HTTPStatusCode: 500, StatusText: "Internal server error"}
+var errInternal = &errResponse{HTTPStatusCode: 500, StatusText: "Internal server error."}

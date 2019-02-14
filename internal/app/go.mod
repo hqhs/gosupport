@@ -9,6 +9,7 @@ require (
 	github.com/jinzhu/gorm v1.9.2
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
 	github.com/lib/pq v1.0.0 // indirect
+	golang.org/x/crypto v0.0.0-20190211182817-74369b46fc67
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/jinzhu/gorm.v1 v1.9.2
 )

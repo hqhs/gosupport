@@ -1,8 +1,7 @@
 package app
 
 import (
-	// "github.com/jinzhu/gorm"
-	// "github.com/jinzhu/gorm/dialects/postgres"
+	"gopkg.in/jinzhu/gorm.v1"
 	// "github.com/go-kit/kit/log/level"
 	"github.com/go-chi/chi"
 	kitlog "github.com/go-kit/kit/log"
@@ -27,13 +26,14 @@ type Options struct {
 type Server struct {
 	// path project directory root
 	// NOTE: this would cause problems on some FaaS
-	quitCh    chan struct{}
-	root      string
-	router    chi.Router
-	domain    string
-	port      string
-	mailer    Mailer
-	db        Database
+	quitCh chan struct{}
+	root   string
+	router chi.Router
+	domain string
+	port   string
+	mailer Mailer
+	// NOTE: use sqlmock for testing
+	DB        *gorm.DB
 	logger    kitlog.Logger
 	templator *templator.Templator
 }
@@ -43,7 +43,7 @@ func InitServer(
 	l kitlog.Logger,
 	t *templator.Templator,
 	m Mailer,
-	db Database,
+	db *gorm.DB,
 	o Options,
 ) *Server {
 	if o.Port[0] != ':' {
@@ -56,6 +56,7 @@ func InitServer(
 		mailer:    m,
 		domain:    o.Domain,
 		port:      o.Port,
+		DB:        db,
 	}
 	s.InitRoutes(chi.NewRouter(), o.StaticFiles)
 	return &s

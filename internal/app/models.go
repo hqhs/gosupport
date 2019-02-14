@@ -1,34 +1,38 @@
 package app
 
-import "fmt"
+import (
+	"fmt"
+
+	"gopkg.in/jinzhu/gorm.v1"
+)
 
 // Admin represents registered dashboard Helpdesker
 type Admin struct {
-	Email              string `json:"email"`
-	Name               string `json:"name"`
-	HashedPassword     string `json:"hashed_password"`
-	IsSuperUser        bool   `json:"is_superuser"`
-	IsActive           bool   `json:"is_active"`
-	EmailConfirmed     bool   `json:"email_confirmed"`
-	CreatedAt          int64  `json:"create_date"`
-	UpdatedAt          int64  `json:"update_date"`
-	AuthToken          string `json:"auth_token"`
-	PasswordResetToken string `json:"password_reset_token"`
+	gorm.Model
+	Email          string `gorm:"UNIQUE,INDEX" json:"email"`
+	Name           string `json:"name"`
+	HashedPassword string `json:"hashed_password"`
+	IsSuperUser    bool   `json:"is_superuser"`
+	IsActive       bool   `json:"is_active"`
+	EmailConfirmed bool   `json:"email_confirmed"`
+	// gorm automaticly tracks those 2
+	AuthToken          string    `json:"auth_token"`
+	PasswordResetToken string    `json:"password_reset_token"`
 }
 
 // User represents single chat endpoint of communication
 type User struct {
-	UserID   int    `json:"userid"`
-	ChatID   int64  `json:"chatid"`
-	Email    string `json:"email"`
-	Name     string `json:"name"`
-	Username string `json:"username"`
-	HasUnreadMessages bool `json:"has_unread_messages"`
+	gorm.Model
+	UserID            int    `json:"userid"`
+	ChatID            int64  `json:"chatid"`
+	Email             string `json:"email"`
+	Name              string `json:"name"`
+	Username          string `json:"username"`
+	HasUnreadMessages bool   `json:"has_unread_messages"`
 	// AuthToken used for email authorization
 	AuthToken      []byte  `json:"authtoken"`
 	IsAuthorized   bool    `json:"isauthorized"`
 	IsTokenExpired bool    `json:"is_token_expired"`
-	CreatedAt      int64   `json:"createdat"`
 	LastMessageAt  int64   `json:"lastMessageAt"`
 	LastMessage    Message `json:"last_message"`
 	UserPhotoID    string  `json:"user_photo_id"`
@@ -44,6 +48,7 @@ func (u User) String() string {
 
 // Message is atomic piece of communication between User and Admin
 type Message struct {
+	gorm.Model
 	FromAdmin   bool `json:"from_bot"`
 	IsBroadcast bool `json:"is_broadcast"`
 	// I'm not sure what message id's are unique

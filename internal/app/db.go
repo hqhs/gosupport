@@ -24,33 +24,19 @@ type DbOptions struct {
 	DbType   DbType
 }
 
-// Database implements db access methods.
-type Database interface {
-}
-
-type GormDatabase struct {
-	DB *gorm.DB
-}
-
-func NewGormDatabase(o DbOptions) (Database, error) {
+func NewGormDatabase(o DbOptions) (*gorm.DB, error) {
 	switch o.DbType {
 	case Postgres:
 		url := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable", o.Host, o.Port, o.User, o.DbName, o.Password)
 		db, err := gorm.Open("postgres", url)
-		return &GormDatabase{db}, err
+		return db, err
 	default:
-		return &MockDatabase{}, fmt.Errorf("This database type is now supported: %v", o.DbType)
+		return &gorm.DB{}, fmt.Errorf("This database type is now supported: %v", o.DbType)
 	}
 }
 
-// MockDatabase implements Database interface and stores data in-memory for testing/prototyping
-// NOTE: maybe use bbolt db? No requirements, simple one file storage, consistent and speed is ok
-// I'm going to implement db support with gorm first, to get some sql experience in go, and
-// skip testing at all. So MockDatabase is useless right now
-type MockDatabase struct {
-}
+// NOTE Use sqlmock database instead
+// https://github.com/jirfag/go-queryset/blob/master/queryset/queryset_test.go
+type mockDatabase struct {
 
-// NewMockDatabase initializes database connection
-func NewMockDatabase() Database {
-	return &MockDatabase{}
 }

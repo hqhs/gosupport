@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"os"
-	"fmt"
 
 	"github.com/hqhs/gosupport/internal/app"
 	"github.com/spf13/cobra"
@@ -32,19 +31,12 @@ var migrateCmd = &cobra.Command{
 		// TODO allow user set logger level (better to do it globally)
 		l := kitlog.NewLogfmtLogger(os.Stdout)
 		l.Log("root", options.Root, "address", options.Domain + ":" + options.Port)
-		db, err := app.NewGormDatabase(options.DbOptions)
-		gormDb, ok := db.(*app.GormDatabase)
-		if !ok {
-			err = fmt.Errorf("Type assertion for gorm database failed")
-			l.Log("panic", err)
-		}
+		gormDB, err := app.NewGormDatabase(options.DbOptions)
 		if err != nil {
 			l.Log("panic", err)
-		}
-		if err != nil {
 			l.Log("status", "exiting", "message", "Fix 'panic' errors above to serve http requests")
 			os.Exit(1)
 		}
-		gormDb.DB.AutoMigrate(&app.Admin{}, &app.User{}, &app.Message{})
+		gormDB.AutoMigrate(&app.Admin{}, &app.User{}, &app.Message{})
 	},
 }
