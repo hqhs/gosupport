@@ -1,0 +1,33 @@
+# github.com/go-chi/chi v4.0.1+incompatible
+github.com/go-chi/chi
+github.com/go-chi/chi/middleware
+# github.com/go-kit/kit v0.8.0
+github.com/go-kit/kit/log
+# github.com/go-logfmt/logfmt v0.4.0
+github.com/go-logfmt/logfmt
+# github.com/hqhs/gosupport/cmd v0.0.0 => ./cmd
+github.com/hqhs/gosupport/cmd
+# github.com/hqhs/gosupport/internal/app v0.0.0 => ./internal/app
+github.com/hqhs/gosupport/internal/app
+# github.com/hqhs/gosupport/pkg/templator v0.0.0 => ./pkg/templator
+github.com/hqhs/gosupport/pkg/templator
+# github.com/inconshreveable/mousetrap v1.0.0
+github.com/inconshreveable/mousetrap
+# github.com/jinzhu/gorm v1.9.2
+github.com/jinzhu/gorm/dialects/postgres
+# github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a
+github.com/jinzhu/inflection
+# github.com/kr/logfmt v0.0.0-20140226030751-b84e30acd515
+github.com/kr/logfmt
+# github.com/lib/pq v1.0.0
+github.com/lib/pq
+github.com/lib/pq/hstore
+github.com/lib/pq/oid
+# github.com/oxtoacart/bpool v0.0.0-20150712133111-4e1c5567d7c2
+github.com/oxtoacart/bpool
+# github.com/spf13/cobra v0.0.3
+github.com/spf13/cobra
+# github.com/spf13/pflag v1.0.3
+github.com/spf13/pflag
+# gopkg.in/jinzhu/gorm.v1 v1.9.2
+gopkg.in/jinzhu/gorm.v1
