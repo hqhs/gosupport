@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-
 	"gopkg.in/jinzhu/gorm.v1"
 )
 

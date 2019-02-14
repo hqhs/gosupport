@@ -1,6 +1,9 @@
 package app
 
-import "fmt"
+import (
+	"fmt"
+	"io"
+)
 
 // BotType represents social network/messanger which bot uses
 type BotType string
@@ -8,6 +11,7 @@ type BotType string
 //
 const (
 	Telegram BotType = "TgBot"
+	// NOTE slack support is not implemented yet
 	Slack    BotType = "SlackBot"
 )
 
@@ -27,10 +31,6 @@ func InitBots(o []BotOptions) error {
 	}
 }
 
-// Connecter provides abstraction for varios available bot apis
-type Connector interface {
-}
-
 // BaseBot is abstraction for useful business logic methods, such as authorization
 // sequence etc. Every bot is basicly a REPL, with one difference:
 // sometime your command result is given by helpdesker, and sometimes
@@ -46,6 +46,18 @@ type MockBot struct {
 	*BaseBot
 }
 
-// type Bot interface {
+// NewMockBot initializes bot for development/testing purposes
+func NewMockBot(r io.Reader, w io.Writer) (*MockBot, error) {
+	return &MockBot{}, nil
+}
 
-// }
+// TgBot represents bot in telegram messanger
+type TgBot struct {
+	*BaseBot
+}
+
+// NewTgBot initializes new telegram bot, if check=true bot makes
+// single request to telegram API and return error if it wasn't successful
+func NewTgBot(token string, check bool) error {
+	return fmt.Errorf("Not implemented yet")
+}

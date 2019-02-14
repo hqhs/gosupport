@@ -19,7 +19,6 @@ func (s *Server) ServeRouter() {
 func (s *Server) InitRoutes(router chi.Router, static string) {
 	s.router = router
 
-
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
@@ -35,9 +34,8 @@ func (s *Server) InitRoutes(router chi.Router, static string) {
 	router.With(s.RenderTemplate).HandleFunc("/signin", s.signInForm)
 	router.With(s.RenderTemplate).HandleFunc("/reset-password", s.resetPasswordForm)
 
-
-	router.HandleFunc("/email/reset/{token}", emailResetRedirect)
-	router.Get("/email/signin/{token}", emailSignInRedirect)
+	router.HandleFunc("/email/reset/{token}", s.emailResetRedirect)
+	router.Get("/email/signin/{token}", s.emailSignInRedirect)
 
 	router.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("pong"))

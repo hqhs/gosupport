@@ -97,18 +97,18 @@ func (s *Server) signInForm(w http.ResponseWriter, r *http.Request) {
 	s.templator.Render(w, "success.tmpl", response)
 }
 
+func (s *Server) emailSignInRedirect(w http.ResponseWriter, r *http.Request) {
+
+}
+
 func (s *Server) resetPasswordForm(w http.ResponseWriter, r *http.Request) {
 }
 
+func (s *Server) emailResetRedirect(w http.ResponseWriter, r *http.Request) {
+
+}
+
 func (s *Server) renderChatTemplate(w http.ResponseWriter, r *http.Request) { /* this template renders in middleware */ }
-
-func emailResetRedirect(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func emailSignInRedirect(w http.ResponseWriter, r *http.Request) {
-
-}
 
 func settingsForm(w http.ResponseWriter, r *http.Request) {
 
