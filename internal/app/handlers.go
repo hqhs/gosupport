@@ -1,17 +1,37 @@
 package app
 
-import "net/http"
+import (
+	"net/http"
+)
 
-func loginForm(w http.ResponseWriter, r *http.Request) {
-
+func (s *Server) loginForm(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		if err := s.templator.Render(w, "login.tmpl", nil); err != nil {
+			s.logger.Log("err", err, "then", "during rendering login template")
+			// TODO render 500
+		}
+		return
+	}
 }
 
-func signInForm(w http.ResponseWriter, r *http.Request) {
-
+func (s *Server) signInForm(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		if err := s.templator.Render(w, "signin.tmpl", nil); err != nil {
+			s.logger.Log("err", err, "then", "during rendering singing template")
+			// TODO render 500
+		}
+		return
+	}
 }
 
-func resetPasswordForm(w http.ResponseWriter, r *http.Request) {
-
+func (s *Server) resetPasswordForm(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		if err := s.templator.Render(w, "signin.tmpl", nil); err != nil {
+			s.logger.Log("err", err, "then", "during rendering singing template")
+			// TODO render 500
+		}
+		return
+	}
 }
 
 func emailResetRedirect(w http.ResponseWriter, r *http.Request) {

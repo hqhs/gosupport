@@ -21,6 +21,7 @@ type BotOptions struct {
 func InitBots(o []BotOptions) error {
 	if len(o) == 0 {
 		// TODO init mock bot
+		return nil
 	} else {
 		return fmt.Errorf("There's no support for real bots yet")
 	}

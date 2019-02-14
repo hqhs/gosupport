@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/hqhs/gosupport/internal/app"
 	"github.com/spf13/cobra"
@@ -25,7 +26,11 @@ func init() {
 		&options.EmailPassword, "smtp-password", "s3cr3tpwd",
 		"Password for smtp authentication")
 	serveCmd.PersistentFlags().StringVar(
-		&options.DatabaseURL, "database url", "", "Url to connect to get database access")
+		&options.DatabaseURL, "database", "", "Url to connect to get database access")
+	serveCmd.PersistentFlags().StringVar(
+		&options.StaticFiles, "static", "web/static", "Path to directory with static files")
+	serveCmd.PersistentFlags().BoolVar(
+		&options.ServeStatic, "serve-static", true, "Use project's router to serve static files")
 }
 
 var serveCmd = &cobra.Command{
@@ -46,7 +51,20 @@ var serveCmd = &cobra.Command{
 		}
 		l.Log("templates", fmt.Sprintf("%+v", t.GetTemplates()))
 		m := app.NewMockMailer(t, l)
+		l.Log("msg", "Mock mailer is used")
 		db := app.NewMockDatabase()
+		l.Log("msg", "Mock database is used. Data is not persistent")
+		if options.ServeStatic {
+			staticDir := filepath.Join(options.Root, options.StaticFiles)
+			if _, err = os.Stat(staticDir); os.IsNotExist(err) {
+				l.Log("panic", err)
+			} else {
+				l.Log("StaticDir", staticDir)
+			}
+		} else {
+			options.StaticFiles = ""
+			l.Log("msg", "Serving static files disabled")
+		}
 		if err != nil {
 			l.Log("status", "exiting", "message", "Fix 'panic' errors above to serve http requests")
 			os.Exit(1)

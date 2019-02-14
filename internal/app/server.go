@@ -18,6 +18,8 @@ type Options struct {
 	EmailAddress  string
 	EmailPassword string
 	DatabaseURL   string
+	ServeStatic   bool
+	StaticFiles   string
 }
 
 // Server contains gosupport server state
@@ -54,6 +56,6 @@ func InitServer(
 		domain:    o.Domain,
 		port:      o.Port,
 	}
-	s.InitRoutes(chi.NewRouter())
+	s.InitRoutes(chi.NewRouter(), o.StaticFiles)
 	return &s
 }

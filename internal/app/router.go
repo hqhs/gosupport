@@ -7,7 +7,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 )
 
-// Serve starts http server
+// ServeRouter starts http server
 func (s *Server) ServeRouter() {
 	s.logger.Log("status", "Starting serving routes")
 	http.ListenAndServe(s.port, s.router)
@@ -16,17 +16,24 @@ func (s *Server) ServeRouter() {
 // InitRoutes initializes url schema. Separate function argument
 // for routes is used to escape bugs there server tries to init
 // routes without provided chi.Mux
-func (s *Server) InitRoutes(router chi.Router) {
+func (s *Server) InitRoutes(router chi.Router, static string) {
 	s.router = router
+
+
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.URLFormat)
 	router.Use(CORSMiddleware)
 
-	router.HandleFunc("/login", loginForm)
-	router.HandleFunc("/signin", signInForm)
-	router.HandleFunc("/reset-password", resetPasswordForm)
+	// NOTE serving static files is done before authorization
+	if len(static) > 0 {
+		fileServer(router, "/static", http.Dir(static))
+	}
+
+	router.HandleFunc("/login", s.loginForm)
+	router.HandleFunc("/signin", s.signInForm)
+	router.HandleFunc("/reset-password", s.resetPasswordForm)
 
 	router.HandleFunc("/email/reset/{token}", emailResetRedirect)
 	router.Get("/email/signin/{token}", emailSignInRedirect)
@@ -43,6 +50,7 @@ func (s *Server) authorizedOnlyRoutes() chi.Router {
 	r.Use(s.authMiddleware)
 
 	r.HandleFunc("/settings", settingsForm)
+	// FileProxy is used for serving media from chat, e.g. Telegram Photos
 	r.Get("/file/{id}", fileProxy)
 
 	r.Route("/api/v1", func(r chi.Router) {
@@ -58,4 +66,18 @@ func (s *Server) authorizedOnlyRoutes() chi.Router {
 	})
 	// TODO websocket management should be here
 	return r
+}
+
+func fileServer(r chi.Router, path string, root http.FileSystem) {
+	fs := http.StripPrefix(path, http.FileServer(root))
+
+	if path != "/" && path[len(path)-1] != '/' {
+		r.Get(path, http.RedirectHandler(path+"/", 301).ServeHTTP)
+		path += "/"
+	}
+	path += "*"
+
+	r.Get(path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fs.ServeHTTP(w, r)
+	}))
 }
