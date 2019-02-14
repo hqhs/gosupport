@@ -9,6 +9,31 @@ import (
 	"github.com/go-chi/render"
 )
 
+type loginData struct {
+	Email string
+	Password string
+}
+
+func (l *loginData) Bind(r *http.Request) error {
+	if err := r.ParseForm(); err != nil {
+		return err
+	}
+	l.Email = r.Form.Get("email")
+	l.Password = r.Form.Get("password")
+	// mode this to standard checking utilities
+	if len(l.Password) < 12 {
+		return fmt.Errorf("Minimal password length is 12 characters")
+	}
+	if len(l.Email) == 0 {
+		return fmt.Errorf("Fill in all required fields")
+	}
+	if _, err := mail.ParseAddress(l.Email); err != nil {
+		return fmt.Errorf("Provided email is not valid")
+	}
+	return nil
+}
+
+
 type signInData struct {
 	Email     string
 	Password1 string

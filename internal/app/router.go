@@ -50,6 +50,7 @@ func (s *Server) authorizedOnlyRoutes() chi.Router {
 	r := chi.NewRouter()
 	r.Use(s.authMiddleware)
 
+	r.With(s.RenderTemplate).Get("/", s.renderChatTemplate)
 	r.HandleFunc("/settings", settingsForm)
 	// FileProxy is used for serving media from chat, e.g. Telegram Photos
 	r.Get("/file/{id}", fileProxy)

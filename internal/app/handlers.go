@@ -7,12 +7,50 @@ import (
 	// "github.com/go-chi/render"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"golang.org/x/crypto/bcrypt"
+	"github.com/dgrijalva/jwt-go"
 )
 
 const defaultPasswordHashingCost = 10
 
 func (s *Server) loginForm(w http.ResponseWriter, r *http.Request) {
-
+	data := &loginData{}
+	response := make(map[string]interface{})
+	if err := data.Bind(r); err != nil {
+		// TODO add error to context and render it in templates middleware
+		s.logger.Log("error", err.Error(), "then", "during binding signInForm data")
+		response["Error"] = err.Error()
+		s.templator.Render(w, "login.tmpl", response)
+		return
+	}
+	admin := Admin{}
+	s.DB.Where("email = ?", data.Email).First(&admin)
+	// TODO check user is active and email is confirmed
+	if bcrypt.CompareHashAndPassword([]byte(admin.HashedPassword), []byte(data.Password)) != nil {
+		response["Error"] = "Email/Passwor pair is wrong. Try again or reset password."
+		s.templator.Render(w, "login.tmpl", response)
+		return
+	}
+	// TODO set expiration date
+	claims := jwt.StandardClaims{Issuer: data.Email}
+	JWTToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token, err := JWTToken.SignedString([]byte(s.Secret))
+	if err != nil {
+		s.logger.Log("error", err.Error(), "then", "during signing jwt token")
+		response["Error"] = "Internal server error. Try again or contact administrators."
+		s.templator.Render(w, "login.tmpl", response)
+		return
+	}
+	authCookie := http.Cookie{
+		Name:     "Authorization",
+		Value:    token,
+		Domain:   s.domain,
+		MaxAge:   3600,  // in seconds
+		HttpOnly: false, // preact need this one
+		SameSite: http.SameSiteStrictMode,
+		// Secure:   true,     // allow only https
+	}
+	http.SetCookie(w, &authCookie)
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func (s *Server) signInForm(w http.ResponseWriter, r *http.Request) {
@@ -20,13 +58,10 @@ func (s *Server) signInForm(w http.ResponseWriter, r *http.Request) {
 	response := make(map[string]interface{})
 	if err := data.Bind(r); err != nil {
 		s.logger.Log("error", err.Error(), "then", "during binding signInForm data")
-		// render.Render(w, r, errInvalid)
 		response["Error"] = err.Error()
 		s.templator.Render(w, "signin.tmpl", response)
 		return
 	}
-	// TODO check what admin with provided email does not exist in database
-	// if not, create one
 	admin := Admin{}
 	s.DB.Where("email = ?", data.Email).First(&admin)
 	if len(admin.HashedPassword) > 0 {
@@ -43,10 +78,8 @@ func (s *Server) signInForm(w http.ResponseWriter, r *http.Request) {
 		s.templator.Render(w, "signin.tmpl", response)
 		return
 	}
-	// TODO save admin to database
 	token, _ := generateRandomStringURLSafe(60)
 	url := fmt.Sprintf("http://%s/email/signin/%s", s.domain, token) // FIXME add optional port
-	// TODO send authorization email with url
 	mail := AuthMail{
 		data.Email,
 		"Authorization letter for Support Dashboard",
@@ -66,6 +99,8 @@ func (s *Server) signInForm(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) resetPasswordForm(w http.ResponseWriter, r *http.Request) {
 }
+
+func (s *Server) renderChatTemplate(w http.ResponseWriter, r *http.Request) { /* this template renders in middleware */ }
 
 func emailResetRedirect(w http.ResponseWriter, r *http.Request) {
 

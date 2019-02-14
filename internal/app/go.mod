@@ -1,6 +1,7 @@
 module github.com/hqhs/gosupport/internal/app
 
 require (
+	github.com/auth0/go-jwt-middleware v0.0.0-20170425171159-5493cabe49f7
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-chi/chi v4.0.1+incompatible
 	github.com/go-chi/render v1.0.1

@@ -30,6 +30,9 @@ func init() {
 	serveCmd.PersistentFlags().BoolVar(
 		&options.ServeStatic, "serve-static", true, "Use project's router to serve static files")
 	serveCmd.PersistentFlags().StringVar(
+		&options.Secret, "secret", "s3cr3t", `Secret string to use for signing jwt.
+ Note if you change it, already authenticated users would be logged out`)
+	serveCmd.PersistentFlags().StringVar(
 		&options.DbOptions.User, "dbuser", "postgres", "Database user")
 	serveCmd.PersistentFlags().StringVar(
 		&options.DbOptions.Password, "dbpassword", "", "Database password")

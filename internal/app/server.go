@@ -20,6 +20,7 @@ type Options struct {
 	ServeStatic   bool
 	StaticFiles   string
 	DbOptions     DbOptions
+	Secret        string
 }
 
 // Server contains gosupport server state
@@ -36,6 +37,7 @@ type Server struct {
 	DB        *gorm.DB
 	logger    kitlog.Logger
 	templator *templator.Templator
+	Secret    string
 }
 
 // InitServer initialize new server instance with provided options & logger
@@ -57,6 +59,7 @@ func InitServer(
 		domain:    o.Domain,
 		port:      o.Port,
 		DB:        db,
+		Secret:    o.Secret,
 	}
 	s.InitRoutes(chi.NewRouter(), o.StaticFiles)
 	return &s

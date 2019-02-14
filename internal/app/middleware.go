@@ -4,7 +4,8 @@ import (
 	"net/http"
 	"fmt"
 
-	// "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/auth0/go-jwt-middleware"
 	"github.com/go-chi/render"
 )
 
@@ -21,12 +22,38 @@ func CORSMiddleware(next http.Handler) http.Handler {
 }
 
 func (s *Server) authMiddleware(next http.Handler) http.Handler {
+	JWTErrorHandler := func(w http.ResponseWriter, r *http.Request, err string) {
+		http.Redirect(w, r, "/login", http.StatusFound)
+	}
+
+	jwtMiddleware := jwtmiddleware.New(jwtmiddleware.Options{
+		ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
+			return []byte(s.Secret), nil
+		},
+		SigningMethod: jwt.SigningMethodHS256,
+		Extractor: func(r *http.Request) (string, error) {
+			authCookie, err := r.Cookie("Authorization")
+			if err != nil {
+				return "", err
+			}
+			return authCookie.Value, nil
+		},
+		ErrorHandler: JWTErrorHandler,
+	})
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(w, r)
+		if err := jwtMiddleware.CheckJWT(w, r); err == nil {
+			// ctx := r.Context()
+			// token, ok := ctx.Value("user").(*jwt.Token)
+			// if claims, ok := token.Claims.(jwt.MapClaims); ok {
+
+			// }
+			next.ServeHTTP(w, r)
+		}
 	})
 }
 
-// userCtx is used to load an Article object from
+// userCtx is used to load an objects
 // the URL parameters passed through as the request. In case
 // the user could not be found, we stop here and return a 404.
 func (s *Server) userCtx(next http.Handler) http.Handler {
@@ -49,6 +76,8 @@ func (s *Server) RenderTemplate(next http.Handler) http.Handler {
 			tmpl = "signin.tmpl"
 		case "/reset-password":
 			tmpl = "reset_password.tmpl"
+		case "/":
+			tmpl = "chats.tmpl"
 		}
 		if err := s.templator.Render(w, tmpl, nil); err != nil {
 			s.logger.Log("err", err, "then", fmt.Sprintf("during rendering %s template", tmpl))
