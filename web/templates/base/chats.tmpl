@@ -1,0 +1,17 @@
+{{ define "title" }}Index{{end}}
+
+{{define "customStyles"}}
+<link rel="stylesheet" href="/static/chat.css">
+{{end}}
+
+{{define "content"}}
+<div class="container">
+  {{template "header"}}
+  <div id="chat">
+  </div>
+</div>
+{{end}}
+
+{{define "scripts"}}
+<script src="/static/js/app.js"></script>
+{{end}}

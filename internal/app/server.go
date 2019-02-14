@@ -1,4 +1,4 @@
-package internal
+package app
 
 import (
 	// "github.com/jinzhu/gorm"
@@ -6,6 +6,7 @@ import (
 	// "github.com/go-kit/kit/log/level"
 	"github.com/go-chi/chi"
 	kitlog "github.com/go-kit/kit/log"
+	"github.com/hqhs/gosupport/pkg/templator"
 )
 
 // Options represents server initialization options
@@ -16,36 +17,42 @@ type Options struct {
 	EmailServer   string
 	EmailAddress  string
 	EmailPassword string
+	DatabaseURL   string
 }
 
 // Server contains gosupport server state
 type Server struct {
 	// path project directory root
 	// NOTE: this would cause problems on some FaaS
+	quitCh    chan struct{}
 	root      string
 	router    chi.Router
 	domain    string
 	port      string
-	mailer    *Mailer
+	mailer    Mailer
+	db        Database
 	logger    kitlog.Logger
-	templator *Templator
+	templator *templator.Templator
 }
 
 // InitServer initialize new server instance with provided options & logger
 func InitServer(
-	logger kitlog.Logger,
-	templator *Templator,
+	l kitlog.Logger,
+	t *templator.Templator,
+	m Mailer,
+	db Database,
 	o Options,
 ) *Server {
 	if o.Port[0] != ':' {
 		o.Port = ":" + o.Port
 	}
 	s := Server{
-		root: o.Root,
-		logger: logger,
-		templator: templator,
-		domain: o.Domain,
-		port:   o.Port,
+		root:      o.Root,
+		logger:    l,
+		templator: t,
+		mailer:    m,
+		domain:    o.Domain,
+		port:      o.Port,
 	}
 	s.InitRoutes(chi.NewRouter())
 	return &s

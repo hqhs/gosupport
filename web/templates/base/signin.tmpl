@@ -1,0 +1,32 @@
+{{define "title"}}Welcome!{{end}}
+
+{{define "customStyles"}}
+<link rel="stylesheet" type="text/css" href="/static/signin.css">
+{{end}}
+
+{{define "content"}}
+<div class="container">
+
+  <form class="form-signin" action="/signin" method="post">
+    <h2 class="form-signin-heading">Sign in</h2>
+    {{if .Error}}
+    <div class="alert alert-danger" role="alert">
+      {{.Error}}
+    </div>
+    {{end}}
+    <div class="form-group">
+    <input type="email" id="inputEmail" class="form-control" placeholder="Email address"
+           name="email" required="" autofocus="">
+    <input minlength="12" type="password" id="inputPassword1" class="form-control"
+           placeholder="Password" name="password1" required>
+    <input minlength="12" type="password" id="inputPassword2" class="form-control"
+           placeholder="Repeat password" name="password2" required>
+    </div>
+    <button class="btn btn-lg btn-primary btn-block" type="submit">Send authorization email</button>
+  </form>
+
+</div>
+{{end}}
+
+{{define "scripts"}}
+{{end}}

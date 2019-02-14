@@ -1,0 +1,30 @@
+{{define "title"}}Welcome!{{end}}
+
+{{define "customStyles"}}
+<link rel="stylesheet" type="text/css" href="/static/signin.css">
+{{end}}
+
+{{define "content"}}
+<div class="container">
+
+  <form class="form-signin">
+    {{if .Message}}
+    <h2 class="form-signin-heading">{{ .Message }}</h2>
+    {{else}}
+    <h2 class="form-signin-heading">Nothing to do here :(</h2>
+    {{end}}
+    {{if .Error}}
+    <div class="alert alert-danger" role="alert">
+      {{.Error}}
+    </div>
+    {{end}}
+    <a class="btn btn-lg btn-primary btn-block" href="/login" type="button">
+        Go to login page
+    </a>
+  </form>
+
+</div>
+{{end}}
+
+{{define "scripts"}}
+{{end}}

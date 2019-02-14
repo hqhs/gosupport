@@ -1,0 +1,54 @@
+{{define "base"}}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>{{template "title" . }}</title>
+    <link href="/static/OpenSans.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/navbar.css">
+    {{template "customStyles" .}}
+  </head>
+  <main>
+    {{template "content" .}}
+  </main>
+  {{template "scripts" .}}
+</html>
+{{end}}
+
+{{define "customStyles"}} {{end}}
+{{define "scripts"}} {{end}}
+
+{{define "user"}}
+<tr>
+    <td>{{ . }} </td>
+    <td></td>
+    <td>
+        <a href="#" role="button">Chat</a>
+    </td>
+</tr>
+{{end}}
+
+{{define "header"}}
+<!-- Static navbar -->
+<nav class="navbar navbar-default">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="#">Support Dashboard</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <!-- <li class="active"><a href="#">Home</a></li> -->
+        <li class="disabled"><a href="#">Bots</a></li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li class="disabled"><a href="#">Settings</a></li>
+        <li><a href="/logout">Logout</a></li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container-fluid -->
+</nav>
+{{end}}
