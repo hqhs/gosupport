@@ -3,6 +3,7 @@ module github.com/hqhs/gosupport/internal/app
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-chi/chi v4.0.1+incompatible
+	github.com/go-chi/render v1.0.1
 	github.com/go-kit/kit v0.8.0
 	github.com/go-logfmt/logfmt v0.4.0 // indirect
 	github.com/jinzhu/gorm v1.9.2

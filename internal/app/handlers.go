@@ -2,13 +2,17 @@ package app
 
 import (
 	"net/http"
+
+	"github.com/go-chi/render"
 )
 
 func (s *Server) loginForm(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
+		// TODO: rendering could be middleware
 		if err := s.templator.Render(w, "login.tmpl", nil); err != nil {
 			s.logger.Log("err", err, "then", "during rendering login template")
-			// TODO render 500
+			// TODO: support custom error pages
+			render.Render(w, r, errInternal)
 		}
 		return
 	}
@@ -18,7 +22,7 @@ func (s *Server) signInForm(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		if err := s.templator.Render(w, "signin.tmpl", nil); err != nil {
 			s.logger.Log("err", err, "then", "during rendering singing template")
-			// TODO render 500
+			render.Render(w, r, errInternal)
 		}
 		return
 	}
@@ -28,7 +32,7 @@ func (s *Server) resetPasswordForm(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		if err := s.templator.Render(w, "signin.tmpl", nil); err != nil {
 			s.logger.Log("err", err, "then", "during rendering singing template")
-			// TODO render 500
+			render.Render(w, r, errInternal)
 		}
 		return
 	}

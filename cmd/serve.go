@@ -67,6 +67,7 @@ var serveCmd = &cobra.Command{
 			l.Log("panic", err)
 			os.Exit(1)
 		}
+		l.Log("msg", "Connected to database")
 		if options.ServeStatic {
 			staticDir := filepath.Join(options.Root, options.StaticFiles)
 			_, err = os.Stat(staticDir)
