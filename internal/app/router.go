@@ -2,15 +2,26 @@ package app
 
 import (
 	"net/http"
+	"context"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 )
 
 // ServeRouter starts http server
-func (s *Server) ServeRouter() {
+func (s *Server) ListenAndServe() {
 	s.logger.Log("status", "Starting serving routes")
-	http.ListenAndServe(s.port, s.router)
+	server := &http.Server{Addr: s.port, Handler: s.router}
+	go func() {
+		if err := server.ListenAndServe(); err != nil {
+			s.logger.Log("err", err, "msg", "Gracefully shutting down the server")
+			return
+		}
+	}()
+	<-s.QuitCh
+	ctx := context.Background()
+	server.Shutdown(ctx)
+	// NOTE websockets hubs would be closed here
 }
 
 // InitRoutes initializes url schema. Separate function argument

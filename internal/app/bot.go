@@ -3,6 +3,8 @@ package app
 import (
 	"fmt"
 	"io"
+
+	// "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 // BotType represents social network/messanger which bot uses
@@ -12,13 +14,26 @@ type BotType string
 const (
 	Telegram BotType = "TgBot"
 	// NOTE slack support is not implemented yet
-	Slack    BotType = "SlackBot"
+	Slack BotType = "SlackBot"
 )
 
 // BotOptions is type/token pair which is needed for bot to start working
 type BotOptions struct {
-	T BotType
-	Token string
+	T              BotType
+	Token          string
+	EmailAuth      bool
+	AllowedDomains []string
+	Name           string
+}
+
+type defaultAnswers struct {
+	Welcome         string `yaml:"welcome"`
+	WaitingForEmail string `yaml:"waitingforemail"`
+	SendingEmail    string `yaml:"sendingemail"`
+	EmailSent       string `yaml:"emailsent"`
+	WrongFormat     string `yaml:"wrongformat"`
+	WrongToken      string `yaml:"wrongtoken"`
+	Authorized      string `yaml:"authorized"`
 }
 
 // InitBots initializes bots for their Options
@@ -53,11 +68,22 @@ func NewMockBot(r io.Reader, w io.Writer) (*MockBot, error) {
 
 // TgBot represents bot in telegram messanger
 type TgBot struct {
+	s *Server
 	*BaseBot
 }
 
 // NewTgBot initializes new telegram bot, if check=true bot makes
 // single request to telegram API and return error if it wasn't successful
 func NewTgBot(token string, check bool) error {
+	// u := tgbotapi.NewUpdate(0)
+	// u.Timeout = 60
+	// updates, err := bot.api.GetUpdatesChan(u)
 	return fmt.Errorf("Not implemented yet")
+}
+
+// Run starts polling on telegram bot
+func (tg *TgBot) Run() {
+	// FIXME get quit channel
+	tg.s.logger.Log("msg", "Start polling on telegram bot.")
+
 }

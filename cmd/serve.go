@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"syscall"
+	"os/signal"
 	"path/filepath"
 
 	"github.com/hqhs/gosupport/internal/app"
@@ -89,6 +91,14 @@ var serveCmd = &cobra.Command{
 		}
 		s := app.InitServer(l, t, m, db, options)
 		// TODO start polling messages from bots
-		s.ServeRouter()
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+		go func() {
+			<-sigs
+			s.QuitCh <- struct{}{}
+		}()
+		s.ListenAndServe()
+		l.Log("msg", "Bye!")
 	},
 }

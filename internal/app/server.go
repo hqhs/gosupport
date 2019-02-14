@@ -27,17 +27,18 @@ type Options struct {
 type Server struct {
 	// path project directory root
 	// NOTE: this would cause problems on some FaaS
-	quitCh chan struct{}
+	QuitCh chan struct{}
+	Secret string
+	DB     *gorm.DB
+	// Unexported fields
 	root   string
 	router chi.Router
 	domain string
 	port   string
 	mailer Mailer
 	// NOTE: use sqlmock for testing
-	DB        *gorm.DB
 	logger    kitlog.Logger
 	templator *templator.Templator
-	Secret    string
 }
 
 // InitServer initialize new server instance with provided options & logger
@@ -52,6 +53,7 @@ func InitServer(
 		o.Port = ":" + o.Port
 	}
 	s := Server{
+		QuitCh:    make(chan struct{}),
 		root:      o.Root,
 		logger:    l,
 		templator: t,
