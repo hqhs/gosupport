@@ -63,6 +63,26 @@ func (s *signInData) Bind(r *http.Request) error {
 	return nil
 }
 
+type userResponse struct {
+	*User
+}
+
+func newUserResponse(u *User) *userResponse {
+	return &userResponse{u}
+}
+
+func (u *userResponse) Render(w http.ResponseWriter, r *http.Request) error {
+	return nil
+}
+
+func newUserListResponse(users []*User) []render.Renderer {
+	list := []render.Renderer{}
+	for _, u := range users {
+		list = append(list, newUserResponse(u))
+	}
+	return list
+}
+
 //--
 // Error response payloads & renderers
 //--

@@ -69,10 +69,11 @@ func (s *Server) authorizedOnlyRoutes() chi.Router {
 	// FileProxy is used for serving media from chat, e.g. Telegram Photos
 	r.Get("/file/{id}", fileProxy)
 
-	r.Route("/api/v1", func(r chi.Router) {
+	// FIXME api is not versioned
+	r.Route("/api", func(r chi.Router) {
 		r.Post("/broadcast", broadcastMessage)
 		// user resource
-		r.Get("/user/", apiUserList)
+		r.Get("/user/", s.apiListUsers)
 		r.Route("/user/{userID}", func(r chi.Router) {
 			r.Use(s.userCtx)
 			r.Get("/", apiGetUserInfo)

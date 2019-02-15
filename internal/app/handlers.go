@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	// "github.com/go-chi/render"
+	"github.com/go-chi/render"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"golang.org/x/crypto/bcrypt"
 	"github.com/dgrijalva/jwt-go"
@@ -122,8 +122,16 @@ func broadcastMessage(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func apiUserList(w http.ResponseWriter, r *http.Request) {
-
+func (s *Server) apiListUsers(w http.ResponseWriter, r *http.Request) {
+	// FIXME pagination
+	users := make([]*User, 0)
+	if err := s.DB.Find(&users).Error; err != nil {
+		render.Render(w, r, errInternal)
+		return
+	}
+	if err := render.RenderList(w, r, newUserListResponse(users)); err != nil {
+		render.Render(w, r, errInternal)
+	}
 }
 
 func apiGetUserInfo(w http.ResponseWriter, r *http.Request) {

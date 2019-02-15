@@ -158,7 +158,7 @@ func (t *TgBot) Run(onExit func()) {
 		return
 	}
 	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 60
+	u.Timeout = 5
 	t.upd, err = t.api.GetUpdatesChan(u)
 	t.s.logger.Log("msg", fmt.Sprintf("Started polling on telegram bot{%s}", t.hash))
 	for {
@@ -182,9 +182,25 @@ func (t *TgBot) processUpdate(u tgbotapi.Update) {
 		"from", u.Message.From.UserName,
 		"text", u.Message.Text,
 	)
-	msg := tgbotapi.NewMessage(u.Message.Chat.ID, u.Message.Text)
-	msg.ReplyToMessageID = u.Message.MessageID
-	t.api.Send(msg)
+	// try to get user with provided id from database
+	// if not exist, save and say hello
+	// is exists, resend to socket
+	var msg string
+	user := &User{UserID: u.Message.From.ID}
+	if err := t.s.DB.First(user).Error; err != nil {
+		parseUserInfo(user, u)
+		if err := t.s.DB.Create(user); err != nil {
+			t.s.logger.Log("err", err, "then", "during saving new user")
+			msg = "Internal server occured. Try again later"
+		} else {
+			msg = "Hello there! Nice to meet you"
+		}
+	} else {
+		msg = "Resending your message to admins..."
+	}
+	reply := tgbotapi.NewMessage(u.Message.Chat.ID, msg)
+	reply.ReplyToMessageID = u.Message.MessageID
+	t.api.Send(reply)
 }
 
 // MockBot takes reader/writer (ex. goes os.Stdin and os.Stdout) and
@@ -201,4 +217,16 @@ func NewMockBot(r io.Reader, w io.Writer) (*MockBot, error) {
 // Run ...
 func (m *MockBot) Run() {
 
+}
+
+func parseUserInfo(u *User, update tgbotapi.Update) {
+	u.UserID = update.Message.From.ID
+	u.ChatID = update.Message.Chat.ID
+	u.Email = ""
+	u.Name = update.Message.From.FirstName + " " + update.Message.From.LastName
+	u.Username = update.Message.From.UserName
+	u.IsAuthorized = false
+	u.AuthToken = []byte{}
+	u.IsTokenExpired = false
+	u.UserPhotoID = ""
 }
