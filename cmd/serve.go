@@ -117,7 +117,6 @@ var serveCmd = &cobra.Command{
 			// later, and writer sends messages to chats with customers. Then
 			// something goes wrong on either side, send err, try to notificate
 			// user about it if hub is working and log it.
-			l.Log("tgbottokens", options.TgBotTokens)
 			t, err := app.NewTgBot(s, tok[0])
 			if err != nil {
 				l.Log("err", err, "then", "during initializing new telegram bot")
