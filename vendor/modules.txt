@@ -11,6 +11,10 @@ github.com/go-chi/render
 github.com/go-kit/kit/log
 # github.com/go-logfmt/logfmt v0.4.0
 github.com/go-logfmt/logfmt
+# github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
+github.com/go-telegram-bot-api/telegram-bot-api
+# github.com/gorilla/websocket v1.4.0
+github.com/gorilla/websocket
 # github.com/hqhs/gosupport/cmd v0.0.0 => ./cmd
 github.com/hqhs/gosupport/cmd
 # github.com/hqhs/gosupport/internal/app v0.0.0 => ./internal/app
@@ -35,6 +39,8 @@ github.com/oxtoacart/bpool
 github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.3
 github.com/spf13/pflag
+# github.com/technoweenie/multipartstreamer v1.0.1
+github.com/technoweenie/multipartstreamer
 # golang.org/x/crypto v0.0.0-20190211182817-74369b46fc67
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
