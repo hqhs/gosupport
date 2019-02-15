@@ -51,6 +51,18 @@ bot token to use for dashboard`)
 	// TODO add dbtype
 }
 
+type checker struct {
+	l kitlog.Logger
+	err error
+}
+
+func (c *checker) Add(err error) {
+	if err != nil {
+		c.err = err
+		c.l.Log("panic", err.Error())
+	}
+}
+
 var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Start http server",
@@ -59,29 +71,23 @@ var serveCmd = &cobra.Command{
 		var err error
 		// TODO allow user set logger level (better to do it globally)
 		l := kitlog.NewLogfmtLogger(os.Stdout)
+		c := checker{l, nil}
 		l.Log("root", options.Root, "address", options.Domain + ":" + options.Port)
 		t, err := templator.NewTemplator(options.Root)
-		if err != nil {
-			// NOTE we dont panic here to allow init process to finish and find all
-			// errors, since they're independent. But http router serving won't start.
-			l.Log("panic", err)
-		}
+		c.Add(err)
 		l.Log("templates", fmt.Sprintf("%+v", t.GetTemplates()))
 		m := app.NewMockMailer(t, l)
 		l.Log("msg", "Mock mailer is used")
 		// db := app.NewMockDatabase()
 		// l.Log("msg", "Mock database is used. Data is not persistent")
 		db, err := app.NewGormDatabase(options.DbOptions)
-		if err != nil {
-			l.Log("panic", err)
-			os.Exit(1)
-		}
+		c.Add(err)
 		l.Log("msg", "Connected to database")
 		if options.ServeStatic {
 			staticDir := filepath.Join(options.Root, options.StaticFiles)
 			_, err = os.Stat(staticDir)
 			if os.IsNotExist(err) {
-				l.Log("panic", err)
+				c.Add(err)
 			} else {
 				l.Log("StaticDir", staticDir)
 			}
@@ -89,7 +95,7 @@ var serveCmd = &cobra.Command{
 			options.StaticFiles = ""
 			l.Log("msg", "Serving static files disabled")
 		}
-		if err != nil {
+		if c.err != nil {
 			l.Log("status", "exiting", "message", "Fix 'panic' errors above to serve http requests")
 			os.Exit(1)
 		}
@@ -101,6 +107,16 @@ var serveCmd = &cobra.Command{
 				l.Log("err", "Yet only one bot at a time is supported")
 				os.Exit(1)
 			}
+			// Docker style management, since there's no guarantees what bot name
+			// is unique, and I dont want to perform complex manipulations with
+			// name/type, just generate 8 symbol md5 hashes of auth tokens and
+			// store bots as map[hash]*Bot. It's better to use Bot interface for
+			// state management only, therefore separate Connector type with
+			// three channels : receive-only, write-only, and errors. Receiver
+			// returns new messages from bot, which are broadcasted to socket hubs
+			// later, and writer sends messages to chats with customers. Then
+			// something goes wrong on either side, send err, try to notificate
+			// user about it if hub is working and log it.
 			l.Log("tgbottokens", options.TgBotTokens)
 			t, err := app.NewTgBot(s, tok[0])
 			if err != nil {
