@@ -1,5 +1,6 @@
 gosupport
 .env
+run.sh
 alembic.ini
 
 db-data/*

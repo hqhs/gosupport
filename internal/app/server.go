@@ -1,6 +1,8 @@
 package app
 
 import (
+	"sync"
+
 	"gopkg.in/jinzhu/gorm.v1"
 	// "github.com/go-kit/kit/log/level"
 	"github.com/go-chi/chi"
@@ -21,17 +23,17 @@ type Options struct {
 	StaticFiles   string
 	DbOptions     DbOptions
 	Secret        string
+	TgBotTokens   string
 }
 
 // Server contains gosupport server state
 type Server struct {
 	// path project directory root
-	// NOTE: this would cause problems on some FaaS
 	QuitCh chan struct{}
 	Secret string
 	DB     *gorm.DB
 	// Unexported fields
-	root   string
+	root   string // NOTE: this would cause problems on some FaaS
 	router chi.Router
 	domain string
 	port   string
@@ -39,6 +41,11 @@ type Server struct {
 	// NOTE: use sqlmock for testing
 	logger    kitlog.Logger
 	templator *templator.Templator
+	// Since bot is a REPL (read bot.go) we need to store all bot
+	// interfaces and make sure each return chan with messages.
+	bots []Bot
+	// hubs []Hub
+	botGroup *sync.WaitGroup
 }
 
 // InitServer initialize new server instance with provided options & logger
@@ -62,6 +69,8 @@ func InitServer(
 		port:      o.Port,
 		DB:        db,
 		Secret:    o.Secret,
+		bots:      make([]Bot, 0),
+		botGroup:  &sync.WaitGroup{},
 	}
 	s.InitRoutes(chi.NewRouter(), o.StaticFiles)
 	return &s

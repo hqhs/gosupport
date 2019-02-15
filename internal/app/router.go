@@ -19,9 +19,14 @@ func (s *Server) ListenAndServe() {
 		}
 	}()
 	<-s.QuitCh
+	s.logger.Log("status", "Waiting then all bots are done...")
+	s.botGroup.Wait()
 	ctx := context.Background()
 	server.Shutdown(ctx)
-	// NOTE websockets hubs would be closed here
+}
+
+func (s *Server) Shutdown() {
+	close(s.QuitCh)
 }
 
 // InitRoutes initializes url schema. Separate function argument

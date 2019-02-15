@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"strings"
 	"fmt"
 	"os"
 	"syscall"
@@ -44,6 +45,9 @@ func init() {
 		&options.DbOptions.Port, "dbport", "5433", "Database port")
 	serveCmd.PersistentFlags().StringVar(
 		&options.DbOptions.DbName, "dbname", "postgres", "Database name")
+	serveCmd.PersistentFlags().StringVar(
+		&options.TgBotTokens, "tgtokens", "", `Quoted comma separated list of telegram
+bot token to use for dashboard`)
 	// TODO add dbtype
 }
 
@@ -91,13 +95,32 @@ var serveCmd = &cobra.Command{
 		}
 		s := app.InitServer(l, t, m, db, options)
 		// TODO start polling messages from bots
+		if len(options.TgBotTokens) > 0 {
+			tok := strings.Split(options.TgBotTokens, ",")
+			if len(tok) > 1 {
+				l.Log("err", "Yet only one bot at a time is supported")
+				os.Exit(1)
+			}
+			l.Log("tgbottokens", options.TgBotTokens)
+			t, err := app.NewTgBot(s, tok[0])
+			if err != nil {
+				l.Log("err", err, "then", "during initializing new telegram bot")
+				os.Exit(1)
+			}
+			s.Add(t)
+		}
 		sigs := make(chan os.Signal, 1)
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
 		go func() {
 			<-sigs
-			s.QuitCh <- struct{}{}
+			// notify all bots to exit
+			s.StopBots()
+			// Quit server, server will block all incoming websocket messages,
+			// but continue to send updates to dashboard from tg (then bots are
+			// still quitting) and then bots are done, server will stop itself
+			s.Shutdown()
 		}()
+		s.RunBots()
 		s.ListenAndServe()
 		l.Log("msg", "Bye!")
 	},
