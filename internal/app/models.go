@@ -34,7 +34,7 @@ type User struct {
 	IsTokenExpired bool    `json:"is_token_expired"`
 	LastMessageAt  int64   `json:"lastMessageAt"`
 	// FIXME
-	// LastMessage    Message `json:"last_message"`
+	LastMessage    Message `json:"last_message"`
 	UserPhotoID    string  `json:"user_photo_id"`
 	IsActive       bool    `json:"is_active"`
 }

@@ -63,7 +63,7 @@ func (s *Server) StopBots() {
 type Connector struct {
 	Input  <-chan Message // messages from Customers
 	Output chan<- Message // messages to Customers
-	Error  chan error   // Errors for admins
+	Error  chan error     // Errors for admins
 }
 
 // BotOptions is type/token pair which is needed for bot to start working
@@ -107,9 +107,9 @@ type BaseBot struct {
 
 func (b *BaseBot) Connector() *Connector {
 	return &Connector{
-		Input: b.Input,
+		Input:  b.Input,
 		Output: b.Output,
-		Error: b.Error,
+		Error:  b.Error,
 	}
 }
 
@@ -155,17 +155,26 @@ func NewTgBot(s *Server, token string) (t *TgBot, err error) {
 
 // Run starts polling on telegram bot
 func (t *TgBot) Run(onExit func()) {
-	t.s.logger.Log("status", fmt.Sprintf("Bot{%s} connecting to telegram api...", t.hash))
-	var err error
-	if t.api, err = tgbotapi.NewBotAPI(t.token); err != nil {
-		return
+	// Telegram servers is blocked in some countries and connecting may take
+	// a lot of time. But graceful reload should stop setup, therefore separate
+	// setup method.
+	setup := func(ready chan struct{}) {
+		t.s.logger.Log("status", fmt.Sprintf("Bot{%s} connecting to telegram api...", t.hash))
+		var err error
+		if t.api, err = tgbotapi.NewBotAPI(t.token); err != nil {
+			return
+		}
+		u := tgbotapi.NewUpdate(0)
+		u.Timeout = 5
+		t.upd, err = t.api.GetUpdatesChan(u)
+		ready <- struct{}{}
 	}
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 5
-	t.upd, err = t.api.GetUpdatesChan(u)
-	t.s.logger.Log("msg", fmt.Sprintf("Started polling on telegram bot{%s}", t.hash))
+	ready := make(chan struct{})
+	go setup(ready)
 	for {
 		select {
+		case <-ready:
+			t.s.logger.Log("msg", fmt.Sprintf("Started polling on telegram bot{%s}", t.hash))
 		case u := <-t.upd:
 			go t.processUpdate(u)
 		case <-t.quit:
@@ -185,25 +194,34 @@ func (t *TgBot) processUpdate(u tgbotapi.Update) {
 		"from", u.Message.From.UserName,
 		"text", u.Message.Text,
 	)
+	var reply string
+	user := &User{UserID: u.Message.From.ID}
+	input := parseMessage(u.Message)
+	if err := t.s.DB.Create(input).Error; err != nil {
+		t.s.logger.Log("err", err, "then", "during saving new message")
+		reply = "internal server error occured. Try again later"
+		goto response
+	}
 	// try to get user with provided id from database
 	// if not exist, save and say hello
 	// is exists, resend to socket
-	var msg string
-	user := &User{UserID: u.Message.From.ID}
 	if err := t.s.DB.First(user).Error; err != nil {
 		parseUserInfo(user, u)
-		if err := t.s.DB.Create(user); err != nil {
+		user.LastMessage = *input
+		if err := t.s.DB.Create(user).Error; err != nil {
 			t.s.logger.Log("err", err, "then", "during saving new user")
-			msg = "Internal server occured. Try again later"
+			reply = "Internal server error occured. Try again later"
 		} else {
-			msg = "Hello there! Nice to meet you"
+			reply = "Hello there! Nice to meet you"
 		}
 	} else {
-		msg = "Resending your message to admins..."
+		reply = "Resending your message to admins..."
 	}
-	reply := tgbotapi.NewMessage(u.Message.Chat.ID, msg)
-	reply.ReplyToMessageID = u.Message.MessageID
-	t.api.Send(reply)
+response:
+	// TODO save message
+	output := tgbotapi.NewMessage(u.Message.Chat.ID, reply)
+	output.ReplyToMessageID = u.Message.MessageID
+	t.api.Send(output)
 }
 
 // MockBot takes reader/writer (ex. goes os.Stdin and os.Stdout) and
@@ -232,4 +250,33 @@ func parseUserInfo(u *User, update tgbotapi.Update) {
 	u.AuthToken = []byte{}
 	u.IsTokenExpired = false
 	u.UserPhotoID = ""
+}
+
+func parseMessage(message *tgbotapi.Message) *Message {
+	isBot := message.From.IsBot
+	m := Message{
+		FromAdmin: isBot,
+		MessageID: message.MessageID,
+		UserID:    message.From.ID,
+		ChatID:    message.Chat.ID,
+		Text:      message.Text,
+		Date:      message.Date,
+		// DocumentID:     message.Document.FileID,
+	}
+	if message.ForwardFrom != nil {
+		m.ForwardFrom = message.ForwardFrom.ID
+		m.ForwardDate = message.ForwardDate
+	}
+	if message.ReplyToMessage != nil {
+		m.ReplyToMessage = message.ReplyToMessage.MessageID
+	}
+	if message.Document != nil {
+		m.DocumentID = message.Document.FileID
+	}
+	if message.Photo != nil {
+		if p := *message.Photo; len(p) > 0 {
+			m.PhotoID = p[len(p)-1].FileID
+		}
+	}
+	return &m
 }
