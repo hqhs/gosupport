@@ -53,8 +53,8 @@ func dbCreateAdmin(ctx context.Context, db *sql.DB, a *Admin) (err error) {
 func dbListUsers(ctx context.Context, db *sql.DB, page int) ([]User, error) {
 	// TODO add page support, currently response is unlimited
 	// select all users and fetch their last messages if any
-	users := make([]User, 0)
-	query := `SELECT users.user_id, users.created_at, users.updated_at,
+	users := make([]User, 0) // 50 is default page size, since there's no real pages, only afterloading
+	query := `SELECT DISTINCT users.user_id, users.created_at, users.updated_at,
 			users.chat_id, users.email, users.name, users.username,
 			message_id, is_broadcast, from_admin, messages.created_at,
 			messages.updated_at, text, document_id, photo_id
@@ -77,10 +77,27 @@ func dbListUsers(ctx context.Context, db *sql.DB, page int) ([]User, error) {
 		u.LastMessage = msg
 		users = append(users, u)
 	}
-	if err := rows.Err(); err != nil {
-		return users, err
+	return users, rows.Err()
+}
+
+func dbListUserMessages(ctx context.Context, db *sql.DB, userID int, page int) ([]Message, error) {
+	messages := make([]Message, 0) // FIXME add actual afterloading of messages, currently whole history is loaded
+	query := `SELECT message_id, is_broadcast, from_admin, created_at,
+			updated_at, text, reply_to_message, document_id, photo_id FROM messages WHERE user_id=$1`
+	rows, err := db.QueryContext(ctx, query, userID)
+	if err != nil {
+		return messages, err
 	}
-	return users, nil
+	defer rows.Close()
+	for rows.Next() {
+		msg := Message{}
+		if err := rows.Scan(&msg.MessageID, &msg.IsBroadcast, &msg.FromAdmin, &msg.CreatedAt,
+		&msg.UpdatedAt, &msg.Text, &msg.ReplyToMessage, &msg.DocumentID, &msg.PhotoID); err != nil {
+			return messages, err
+		}
+		messages = append(messages, msg)
+	}
+	return messages, rows.Err()
 }
 
 // NOTE Use sqlmock database instead

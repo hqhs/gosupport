@@ -44,7 +44,7 @@ type Server struct {
 	templator *templator.Templator
 	// Since bot is a REPL (read bot.go) we need to store all bot
 	// interfaces and make sure each return chan with messages.
-	bots  []Bot
+	bots  map[string]Bot
 	conns map[string]*Connector
 	hubs  map[string]*Hub
 	// hubs []Hub
@@ -72,7 +72,7 @@ func InitServer(
 		port:      o.Port,
 		DB:        db,
 		Secret:    o.Secret,
-		bots:      make([]Bot, 0),
+		bots:      make(map[string]Bot, 0),
 		conns:     make(map[string]*Connector),
 		hubs:      make(map[string]*Hub),
 		botGroup:  &sync.WaitGroup{},

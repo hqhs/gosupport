@@ -68,7 +68,7 @@ func (s *Server) authorizedOnlyRoutes() chi.Router {
 	r.With(s.RenderTemplate).Get("/", s.renderChatTemplate)
 	r.HandleFunc("/settings", settingsForm)
 	// FileProxy is used for serving media from chat, e.g. Telegram Photos
-	r.Get("/file/{id}", fileProxy)
+	r.Get("/file/{id}", s.fileProxy)
 
 	// FIXME api is not versioned
 	r.Route("/api", func(r chi.Router) {
@@ -76,9 +76,9 @@ func (s *Server) authorizedOnlyRoutes() chi.Router {
 		// user resource
 		r.Get("/user/", s.apiListUsers)
 		r.Route("/user/{userID}", func(r chi.Router) {
-			r.Use(s.userCtx)
+			// r.Use(s.userCtx) TODO is this really necessary?
 			r.Get("/", apiGetUserInfo)
-			r.Get("/messages", apiGetUserMessages)
+			r.Get("/messages", s.apiGetUserMessages)
 			r.Post("/messages", apiSendMessage)
 		})
 	})

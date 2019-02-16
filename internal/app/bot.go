@@ -28,10 +28,10 @@ type Bot interface {
 	Stop()
 	Connector() *Connector
 	HashToken(int) string
+	GetFileDirectURL(string) (string, error)
 }
 
 func (s *Server) Add(b Bot) {
-	s.bots = append(s.bots, b)
 	// Docker style management with unique hashes. Since bot name cannot be fetched
 	// before request to bot api, first 8 characters from hashed token is used.
 	var hash string
@@ -43,6 +43,7 @@ func (s *Server) Add(b Bot) {
 			break
 		}
 	}
+	s.bots[hash] = b
 	// TODO fix broadcasting
 	broadcast := make(chan []byte)
 	s.hubs[hash] = NewHub(broadcast)
@@ -186,6 +187,10 @@ func (t *TgBot) Run(onExit func()) {
 			return
 		}
 	}
+}
+
+func (t *TgBot) GetFileDirectURL(fileID string) (string, error) {
+	return t.api.GetFileDirectURL(fileID)
 }
 
 func (t *TgBot) processUpdate(u tgbotapi.Update) {

@@ -70,21 +70,41 @@ func (s *signInData) Bind(r *http.Request) error {
 }
 
 type userResponse struct {
-	*User
+	User
 }
 
-func (s *Server) newUserResponse(u *User) *userResponse {
-	return &userResponse{u}
+func (s *Server) newUserResponse(u User) userResponse {
+	return userResponse{u}
 }
 
-func (u *userResponse) Render(w http.ResponseWriter, r *http.Request) error {
+func (u userResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
 func (s *Server) newUserListResponse(users []User) []render.Renderer {
 	list := []render.Renderer{}
 	for _, u := range users {
-		list = append(list, s.newUserResponse(&u))
+		list = append(list, s.newUserResponse(u))
+	}
+	return list
+}
+
+type messageResponse struct {
+	Message
+}
+
+func (m messageResponse) Render(w http.ResponseWriter, r *http.Request) error {
+	return nil
+}
+
+func (s *Server) newMessageResponse(m Message) messageResponse {
+	return messageResponse{m}
+}
+
+func (s *Server) newMessageListResponse(msgs []Message) []render.Renderer {
+	list := []render.Renderer{}
+	for _, m := range msgs {
+		list = append(list, s.newMessageResponse(m))
 	}
 	return list
 }

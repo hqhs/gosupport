@@ -3,9 +3,12 @@ package app
 import (
 	"fmt"
 	"net/http"
+	"io/ioutil"
+	"strconv"
 	"database/sql"
 
 	"github.com/go-chi/render"
+	"github.com/go-chi/chi"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"golang.org/x/crypto/bcrypt"
 	"github.com/dgrijalva/jwt-go"
@@ -110,8 +113,40 @@ func settingsForm(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func fileProxy(w http.ResponseWriter, r *http.Request) {
-
+func (s *Server) fileProxy(w http.ResponseWriter, r *http.Request) {
+	var fileID string
+	if fileID = chi.URLParam(r, "id"); fileID == "" {
+		render.Render(w, r, errNotFound)
+		return
+	}
+	ctx := r.Context()
+	botHash, ok := ctx.Value(botKey).(string);
+	if !ok {
+		s.logger.Log("err", "botKey is missing in context")
+		render.Render(w, r, errInternal)
+		return
+	}
+	s.logger.Log("botHash", botHash)
+	bot := s.bots[botHash]
+	URL, err := bot.GetFileDirectURL(fileID)
+	if err != nil {
+		s.logger.Log("err", err.Error(), "then", "during getting direct url for file download")
+		render.Render(w, r, errInternal)
+		return
+	}
+	client := http.DefaultClient
+	resp, err := client.Get(URL)
+	if err != nil {
+		s.logger.Log("err", err.Error(), "then", "during downloading file in proxy")
+		return
+	}
+	// TODO: add cache
+	defer resp.Body.Close()
+	buffer, _ := ioutil.ReadAll(resp.Body)
+	contentType := http.DetectContentType(buffer)
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Length", fmt.Sprint(resp.ContentLength))
+	w.Write(buffer)
 }
 
 func broadcastMessage(w http.ResponseWriter, r *http.Request) {
@@ -137,8 +172,25 @@ func apiGetUserInfo(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func apiGetUserMessages(w http.ResponseWriter, r *http.Request) {
-
+func (s *Server) apiGetUserMessages(w http.ResponseWriter, r *http.Request) {
+	var userID string
+	if userID = chi.URLParam(r, "userID"); userID == "" {
+		render.Render(w, r, errNotFound)
+		return
+	}
+	var id int
+	var err error
+	if id, err = strconv.Atoi(userID); err != nil {
+		render.Render(w, r, errNotFound)
+		return
+	}
+	ctx := r.Context()
+	// TODO pagination (afterloading)
+	messages, err := dbListUserMessages(ctx, s.DB, id, 0)
+	if err := render.RenderList(w, r, s.newMessageListResponse(messages)); err != nil {
+		s.logger.Log("err", err.Error(), "then", "during rendering message list")
+		render.Render(w, r, errInternal)
+	}
 }
 
 func apiSendMessage(w http.ResponseWriter, r *http.Request) {
