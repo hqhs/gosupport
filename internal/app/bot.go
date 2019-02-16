@@ -1,14 +1,14 @@
 package app
 
 import (
-	"crypto/md5"
 	"context"
+	"crypto/md5"
 	"database/sql"
-	"time"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
@@ -254,16 +254,18 @@ func (t *TgBot) saveUser(ctx context.Context, conn *sql.Conn, u *User) (err erro
 			chat_id, email, name, username, has_unread_messages)
 			VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`
 	_, err = conn.ExecContext(ctx, query, u.UserID, u.CreatedAt, u.UpdatedAt,
-			u.ChatID, u.Email, u.Name, u.Username, u.HasUnreadMessages)
+		u.ChatID, u.Email, u.Name, u.Username, u.HasUnreadMessages)
 	return
 }
 
 func (t *TgBot) saveMessage(ctx context.Context, conn *sql.Conn, m *Message) (err error) {
 	query := `INSERT INTO messages(user_id, message_id, is_broadcast,
-			from_admin, created_at, updated_at, text, reply_to_message)
-			VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`
+			from_admin, created_at, updated_at, text, reply_to_message,
+			document_id, photo_id)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`
 	_, err = conn.ExecContext(ctx, query, m.UserID, m.MessageID, false,
-		false, time.Now(), time.Now(), m.Text, m.ReplyToMessage)
+		false, time.Now(), time.Now(), m.Text, m.ReplyToMessage,
+		m.DocumentID, m.PhotoID)
 	if err != nil {
 		return err
 	}
@@ -275,13 +277,14 @@ func (t *TgBot) saveMessage(ctx context.Context, conn *sql.Conn, m *Message) (er
 func (t *TgBot) parseMessage(message *tgbotapi.Message) *Message {
 	isBot := message.From.IsBot
 	m := Message{
-		FromAdmin: isBot,
-		MessageID: message.MessageID,
-		UserID:    message.From.ID,
-		ChatID:    message.Chat.ID,
-		Text:      message.Text,
-		Date:      message.Date,
-		// DocumentID:     message.Document.FileID,
+		FromAdmin:  isBot,
+		MessageID:  message.MessageID,
+		UserID:     message.From.ID,
+		ChatID:     message.Chat.ID,
+		Text:       message.Text,
+		Date:       message.Date,
+		DocumentID: "",
+		PhotoID:    "",
 	}
 	if message.ForwardFrom != nil {
 		m.ForwardFrom = message.ForwardFrom.ID

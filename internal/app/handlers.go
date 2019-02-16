@@ -119,13 +119,16 @@ func broadcastMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) apiListUsers(w http.ResponseWriter, r *http.Request) {
-	// FIXME pagination
-	users := make([]*User, 0)
-	// if err := s.DB.Find(&users).Error; err != nil {
-	// 	render.Render(w, r, errInternal)
-	// 	return
-	// }
+	ctx := r.Context()
+	// TODO fetch page from context, if none, show 0
+	users, err := dbListUsers(ctx, s.DB, 0)
+	if err != nil {
+		s.logger.Log("err", err.Error())
+		render.Render(w, r, errInternal)
+		return
+	}
 	if err := render.RenderList(w, r, s.newUserListResponse(users)); err != nil {
+		s.logger.Log("err", err.Error())
 		render.Render(w, r, errInternal)
 	}
 }

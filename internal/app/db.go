@@ -50,7 +50,38 @@ func dbCreateAdmin(ctx context.Context, db *sql.DB, a *Admin) (err error) {
 	return
 }
 
-
+func dbListUsers(ctx context.Context, db *sql.DB, page int) ([]User, error) {
+	// TODO add page support, currently response is unlimited
+	// select all users and fetch their last messages if any
+	users := make([]User, 0)
+	query := `SELECT users.user_id, users.created_at, users.updated_at,
+			users.chat_id, users.email, users.name, users.username,
+			message_id, is_broadcast, from_admin, messages.created_at,
+			messages.updated_at, text, document_id, photo_id
+			FROM users LEFT JOIN messages ON messages.message_id = users.last_message_id`
+	rows, err := db.QueryContext(ctx, query)
+	if err != nil {
+		return users, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		u := User{}
+		msg := Message{}
+		if err := rows.Scan(&u.UserID, &u.CreatedAt, &u.UpdatedAt,
+			&u.ChatID, &u.Email, &u.Name, &u.Username,
+			&msg.MessageID, &msg.IsBroadcast, &msg.FromAdmin, &msg.CreatedAt,
+			&msg.UpdatedAt, &msg.Text, &msg.DocumentID, &msg.PhotoID); err != nil {
+			return users, err
+		}
+		msg.UserID = u.UserID
+		u.LastMessage = msg
+		users = append(users, u)
+	}
+	if err := rows.Err(); err != nil {
+		return users, err
+	}
+	return users, nil
+}
 
 // NOTE Use sqlmock database instead
 type mockDatabase struct {

@@ -74,7 +74,6 @@ type userResponse struct {
 }
 
 func (s *Server) newUserResponse(u *User) *userResponse {
-	s.logger.Log("last message", fmt.Sprintf("%+v", u.LastMessage))
 	return &userResponse{u}
 }
 
@@ -82,10 +81,10 @@ func (u *userResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (s *Server) newUserListResponse(users []*User) []render.Renderer {
+func (s *Server) newUserListResponse(users []User) []render.Renderer {
 	list := []render.Renderer{}
 	for _, u := range users {
-		list = append(list, s.newUserResponse(u))
+		list = append(list, s.newUserResponse(&u))
 	}
 	return list
 }

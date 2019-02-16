@@ -47,7 +47,7 @@ def upgrade():
     )
     op.create_table(
         'messages',
-        sa.Column('user_id', sa.Integer, sa.ForeignKey('users.user_id'), nullable=False, index=True),
+        sa.Column('user_id', sa.Integer, sa.ForeignKey('users.user_id', ondelete="CASCADE"), nullable=False, index=True),
         sa.Column('message_id', sa.Integer, primary_key=True),
         sa.Column('is_broadcast', sa.Boolean, nullable=False),
         sa.Column('from_admin', sa.Boolean, nullable=False),
@@ -55,13 +55,15 @@ def upgrade():
         sa.Column('updated_at', sa.DateTime),
         sa.Column('text', sa.String(4000), nullable=False),
         sa.Column('reply_to_message', sa.Integer),
+        sa.Column('document_id', sa.String, nullable=False),
+        sa.Column('photo_id', sa.String, nullable=False),
     )
     op.add_column('users',
-        sa.Column('last_message_id', sa.Integer, sa.ForeignKey('messages.message_id'), index=True),
+        sa.Column('last_message_id', sa.Integer, sa.ForeignKey('messages.message_id', ondelete="CASCADE"), index=True),
     )
 
 
 def downgrade():
     op.drop_table('admins')
-    op.drop_table('messages')
     op.drop_table('users')
+    op.drop_table('messages')
