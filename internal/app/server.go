@@ -43,8 +43,9 @@ type Server struct {
 	templator *templator.Templator
 	// Since bot is a REPL (read bot.go) we need to store all bot
 	// interfaces and make sure each return chan with messages.
-	bots []Bot
+	bots  []Bot
 	conns map[string]*Connector
+	hubs  map[string]*Hub
 	// hubs []Hub
 	botGroup *sync.WaitGroup
 }
@@ -72,6 +73,7 @@ func InitServer(
 		Secret:    o.Secret,
 		bots:      make([]Bot, 0),
 		conns:     make(map[string]*Connector),
+		hubs:      make(map[string]*Hub),
 		botGroup:  &sync.WaitGroup{},
 	}
 	s.InitRoutes(chi.NewRouter(), o.StaticFiles)

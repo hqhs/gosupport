@@ -1,12 +1,19 @@
 package app
 
 import (
+	"context"
 	"net/http"
 	"fmt"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/auth0/go-jwt-middleware"
 	"github.com/go-chi/render"
+)
+
+type contextKey int
+
+const (
+	botKey contextKey = iota
 )
 
 // CORSMidlleware writer cors headers to requests
@@ -25,7 +32,6 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 	JWTErrorHandler := func(w http.ResponseWriter, r *http.Request, err string) {
 		http.Redirect(w, r, "/login", http.StatusFound)
 	}
-
 	jwtMiddleware := jwtmiddleware.New(jwtmiddleware.Options{
 		ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
 			return []byte(s.Secret), nil
@@ -40,15 +46,23 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		},
 		ErrorHandler: JWTErrorHandler,
 	})
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := jwtMiddleware.CheckJWT(w, r); err == nil {
-			// ctx := r.Context()
-			// token, ok := ctx.Value("user").(*jwt.Token)
-			// if claims, ok := token.Claims.(jwt.MapClaims); ok {
-
-			// }
-			next.ServeHTTP(w, r)
+			// Since there's no rights management at all yet, this middleware just adds
+			// random bot hash to user cookies if hash not yet set. Since generated
+			// only based on token and counter, this approach would work in most cases.
+			ctx := r.Context()
+			// I'm not quite sure error here is possible, middleware would redirect
+			// to login page if jwt is not in request (or default ctx key was changed)
+			token, _ := ctx.Value("user").(*jwt.Token)
+			if claims, ok := token.Claims.(jwt.MapClaims); ok {
+				bot := claims["bot"]
+				// ctx.Set(botKey, bot)
+				c := context.WithValue(ctx, botKey, bot)
+				next.ServeHTTP(w, r.WithContext(c))
+			} else {
+				// TODO render 500
+			}
 		}
 	})
 }

@@ -7,7 +7,13 @@ import (
 	"strings"
 
 	"github.com/go-chi/render"
+	"github.com/dgrijalva/jwt-go"
 )
+
+type CustomJWTClaims struct {
+	CurrentBot string `json:"bot"`
+	jwt.StandardClaims
+}
 
 type loginData struct {
 	Email string

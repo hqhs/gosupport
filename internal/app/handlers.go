@@ -31,7 +31,17 @@ func (s *Server) loginForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// TODO set expiration date
-	claims := jwt.StandardClaims{Issuer: data.Email}
+	// add first available bot to claims, auth middleware would add it to context
+	// later, read middleware comment for more information.
+	var bot string
+	for k := range s.conns {
+		bot = k
+		break
+	}
+	claims := CustomJWTClaims{
+		bot,
+		jwt.StandardClaims{Issuer: data.Email},
+	}
 	JWTToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	token, err := JWTToken.SignedString([]byte(s.Secret))
 	if err != nil {

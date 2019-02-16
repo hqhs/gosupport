@@ -81,7 +81,14 @@ func (s *Server) authorizedOnlyRoutes() chi.Router {
 			r.Post("/messages", apiSendMessage)
 		})
 	})
-	// TODO websocket management should be here
+	r.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
+		// TODO fetch bot hash from somewhere
+		ctx := r.Context()
+		bot := ctx.Value(botKey).(string)
+		s.logger.Log("bot", bot)
+		hub := s.hubs[bot]
+		serveWs(hub, w, r)
+	})
 	return r
 }
 

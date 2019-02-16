@@ -37,9 +37,12 @@ func (s *Server) Add(b Bot) {
 		if _, ok := s.conns[hash]; !ok {
 			s.conns[hash] = b.Connector()
 			s.logger.Log("msg", fmt.Sprintf("Added connector with hash %s", hash))
-			return
+			break
 		}
 	}
+	// TODO fix broadcasting
+	broadcast := make(chan []byte)
+	s.hubs[hash] = NewHub(broadcast)
 }
 
 func (s *Server) RunBots() {
