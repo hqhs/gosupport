@@ -2,12 +2,13 @@ package app
 
 import (
 	"sync"
+	"database/sql"
 
-	"gopkg.in/jinzhu/gorm.v1"
 	// "github.com/go-kit/kit/log/level"
 	"github.com/go-chi/chi"
 	kitlog "github.com/go-kit/kit/log"
 	"github.com/hqhs/gosupport/pkg/templator"
+	_ "github.com/lib/pq" // postgres driver
 )
 
 // Options represents server initialization options
@@ -31,7 +32,7 @@ type Server struct {
 	// path project directory root
 	QuitCh chan struct{}
 	Secret string
-	DB     *gorm.DB
+	DB     *sql.DB
 	// Unexported fields
 	root   string // NOTE: this would cause problems on some FaaS
 	router chi.Router
@@ -55,7 +56,7 @@ func InitServer(
 	l kitlog.Logger,
 	t *templator.Templator,
 	m Mailer,
-	db *gorm.DB,
+	db *sql.DB,
 	o Options,
 ) *Server {
 	if o.Port[0] != ':' {

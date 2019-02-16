@@ -14,6 +14,7 @@ type contextKey int
 
 const (
 	botKey contextKey = iota
+	templateErrorKey
 )
 
 // CORSMidlleware writer cors headers to requests

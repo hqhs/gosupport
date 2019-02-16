@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"net/http"
+	"database/sql"
 
 	"github.com/go-chi/render"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
@@ -13,21 +14,21 @@ import (
 const defaultPasswordHashingCost = 10
 
 func (s *Server) loginForm(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	data := &loginData{}
-	response := make(map[string]interface{})
 	if err := data.Bind(r); err != nil {
-		// TODO add error to context and render it in templates middleware
-		s.logger.Log("error", err.Error(), "then", "during binding signInForm data")
-		response["Error"] = err.Error()
-		s.templator.Render(w, "login.tmpl", response)
+		s.renderError(w, "login.tmpl", err)
 		return
 	}
-	admin := Admin{}
-	s.DB.Where("email = ?", data.Email).First(&admin)
+	admin := &Admin{}
+	query := "SELECT hashed_password FROM admins WHERE email = $1"
+	if err := s.DB.QueryRowContext(ctx, query, data.Email).Scan(&admin.HashedPassword); err != nil {
+		s.renderError(w, "login.tmpl", fmt.Errorf("Email/Passwor pair is wrong. Try again or reset password"))
+		return
+	}
 	// TODO check user is active and email is confirmed
-	if bcrypt.CompareHashAndPassword([]byte(admin.HashedPassword), []byte(data.Password)) != nil {
-		response["Error"] = "Email/Passwor pair is wrong. Try again or reset password."
-		s.templator.Render(w, "login.tmpl", response)
+	if nil != bcrypt.CompareHashAndPassword([]byte(admin.HashedPassword), []byte(data.Password)) {
+		s.renderError(w, "login.tmpl", fmt.Errorf("Email/Passwor pair is wrong. Try again or reset password"))
 		return
 	}
 	// TODO set expiration date
@@ -38,16 +39,11 @@ func (s *Server) loginForm(w http.ResponseWriter, r *http.Request) {
 		bot = k
 		break
 	}
-	claims := CustomJWTClaims{
-		bot,
-		jwt.StandardClaims{Issuer: data.Email},
-	}
+	claims := CustomJWTClaims{bot, jwt.StandardClaims{Issuer: data.Email}}
 	JWTToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	token, err := JWTToken.SignedString([]byte(s.Secret))
 	if err != nil {
-		s.logger.Log("error", err.Error(), "then", "during signing jwt token")
-		response["Error"] = "Internal server error. Try again or contact administrators."
-		s.templator.Render(w, "login.tmpl", response)
+		s.renderError(w, "login.tmpl", err)
 		return
 	}
 	authCookie := http.Cookie{
@@ -64,28 +60,21 @@ func (s *Server) loginForm(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) signInForm(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	data := &signInData{}
-	response := make(map[string]interface{})
 	if err := data.Bind(r); err != nil {
-		s.logger.Log("error", err.Error(), "then", "during binding signInForm data")
-		response["Error"] = err.Error()
-		s.templator.Render(w, "signin.tmpl", response)
+		s.renderError(w, "signin.tmpl", err)
 		return
 	}
-	admin := Admin{}
-	s.DB.Where("email = ?", data.Email).First(&admin)
-	if len(admin.HashedPassword) > 0 {
-		response["Error"] = fmt.Errorf("Admin with provided email already exists")
-		s.templator.Render(w, "signin.tmpl", response)
+	admin := &Admin{}
+	query := "SELECT email FROM admins WHERE email = $1"
+	if err := s.DB.QueryRowContext(ctx, query, data.Email).Scan(&admin.Email); err != sql.ErrNoRows {
+		s.renderError(w, "signin.tmpl", fmt.Errorf("Admin with provided email already exists"))
 		return
 	}
-	admin = Admin{Email: data.Email, IsActive: true, EmailConfirmed: false}
-	hash, _ := bcrypt.GenerateFromPassword([]byte(data.Password1), defaultPasswordHashingCost)
-	admin.HashedPassword = string(hash)
-	if err := s.DB.Create(&admin).Error; err != nil {
-		s.logger.Log("msg", "Admin creation error", "err", err)
-		response["Error"] = fmt.Errorf("Internal server error. Try again or contact administrators.")
-		s.templator.Render(w, "signin.tmpl", response)
+	admin = NewAdmin(data.Email, data.Password1, false)
+	if err := dbCreateAdmin(ctx, s.DB, admin); err != nil {
+		s.renderError(w, "signin.tmpl", fmt.Errorf("Internal server error. Try again or contact administrators"))
 		return
 	}
 	token, _ := generateRandomStringURLSafe(60)
@@ -97,14 +86,11 @@ func (s *Server) signInForm(w http.ResponseWriter, r *http.Request) {
 		url,
 		"Confirm Email",
 	}
-	err := s.mailer.SendAuthMail(mail)
-	if err != nil {
-		response["Error"] = err.Error()
-		s.templator.Render(w, "signin.tmpl", response)
+	if err := s.mailer.SendAuthMail(mail); err != nil {
+		s.renderError(w, "signin.tmpl", err)
 		return
 	}
-	response["Message"] = "Success! Email sent."
-	s.templator.Render(w, "success.tmpl", response)
+	s.templator.Render(w, "success.tmpl", map[string]interface{}{"Message": "Success! Email sent."})
 }
 
 func (s *Server) emailSignInRedirect(w http.ResponseWriter, r *http.Request) {
@@ -135,11 +121,11 @@ func broadcastMessage(w http.ResponseWriter, r *http.Request) {
 func (s *Server) apiListUsers(w http.ResponseWriter, r *http.Request) {
 	// FIXME pagination
 	users := make([]*User, 0)
-	if err := s.DB.Find(&users).Error; err != nil {
-		render.Render(w, r, errInternal)
-		return
-	}
-	if err := render.RenderList(w, r, newUserListResponse(users)); err != nil {
+	// if err := s.DB.Find(&users).Error; err != nil {
+	// 	render.Render(w, r, errInternal)
+	// 	return
+	// }
+	if err := render.RenderList(w, r, s.newUserListResponse(users)); err != nil {
 		render.Render(w, r, errInternal)
 	}
 }
@@ -154,4 +140,10 @@ func apiGetUserMessages(w http.ResponseWriter, r *http.Request) {
 
 func apiSendMessage(w http.ResponseWriter, r *http.Request) {
 
+}
+
+func (s *Server) renderError(w http.ResponseWriter, t string, err error) {
+	// FIXME not all errors should be logged
+	s.logger.Log("error", err.Error(), "then", fmt.Sprintf("during rendering %s template", t))
+	s.templator.Render(w, "login.tmpl", map[string]interface{}{"Error": err.Error()})
 }

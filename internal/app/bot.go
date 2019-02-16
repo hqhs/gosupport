@@ -2,6 +2,9 @@ package app
 
 import (
 	"crypto/md5"
+	"context"
+	"database/sql"
+	"time"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -194,53 +197,45 @@ func (t *TgBot) processUpdate(u tgbotapi.Update) {
 		"from", u.Message.From.UserName,
 		"text", u.Message.Text,
 	)
+	ctx := context.Background()
+	user := &User{}
+	msg := t.parseMessage(u.Message)
 	var reply string
-	user := &User{UserID: u.Message.From.ID}
-	input := parseMessage(u.Message)
-	if err := t.s.DB.Create(input).Error; err != nil {
-		t.s.logger.Log("err", err, "then", "during saving new message")
-		reply = "internal server error occured. Try again later"
+
+	conn, _ := t.s.DB.Conn(ctx)
+	defer conn.Close()
+	userID := u.Message.From.ID
+	// try to get user from database
+	query := "SELECT user_id FROM users WHERE user_id=$1"
+	if err := conn.QueryRowContext(ctx, query, userID).Scan(&user.UserID); err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			t.parseUserInfo(user, u)
+			if err = t.saveUser(ctx, conn, user); err != nil {
+				reply = "Internal server error. Try again later"
+				t.s.logger.Log("err", err.Error())
+				goto response
+			}
+		default:
+			t.s.logger.Log("err", err.Error())
+			reply = "Internal server error. Try again later"
+			goto response
+		}
+	}
+	// user updated after message is saved
+	if err := t.saveMessage(ctx, conn, msg); err != nil {
+		t.s.logger.Log("err", err.Error())
+		reply = "Internal server error. Try again later"
 		goto response
 	}
-	// try to get user with provided id from database
-	// if not exist, save and say hello
-	// is exists, resend to socket
-	if err := t.s.DB.First(user).Error; err != nil {
-		parseUserInfo(user, u)
-		user.LastMessage = *input
-		if err := t.s.DB.Create(user).Error; err != nil {
-			t.s.logger.Log("err", err, "then", "during saving new user")
-			reply = "Internal server error occured. Try again later"
-		} else {
-			reply = "Hello there! Nice to meet you"
-		}
-	} else {
-		reply = "Resending your message to admins..."
-	}
+	reply = "Resending your message to admins..."
 response:
-	// TODO save message
 	output := tgbotapi.NewMessage(u.Message.Chat.ID, reply)
 	output.ReplyToMessageID = u.Message.MessageID
 	t.api.Send(output)
 }
 
-// MockBot takes reader/writer (ex. goes os.Stdin and os.Stdout) and
-// simulates bot behavior and logic.
-type MockBot struct {
-	*BaseBot
-}
-
-// NewMockBot initializes bot for development/testing purposes
-func NewMockBot(r io.Reader, w io.Writer) (*MockBot, error) {
-	return &MockBot{}, nil
-}
-
-// Run ...
-func (m *MockBot) Run() {
-
-}
-
-func parseUserInfo(u *User, update tgbotapi.Update) {
+func (t *TgBot) parseUserInfo(u *User, update tgbotapi.Update) {
 	u.UserID = update.Message.From.ID
 	u.ChatID = update.Message.Chat.ID
 	u.Email = ""
@@ -250,9 +245,34 @@ func parseUserInfo(u *User, update tgbotapi.Update) {
 	u.AuthToken = []byte{}
 	u.IsTokenExpired = false
 	u.UserPhotoID = ""
+	u.UpdatedAt = time.Now()
+	u.CreatedAt = time.Now()
 }
 
-func parseMessage(message *tgbotapi.Message) *Message {
+func (t *TgBot) saveUser(ctx context.Context, conn *sql.Conn, u *User) (err error) {
+	query := `INSERT INTO users(user_id, created_at, updated_at,
+			chat_id, email, name, username, has_unread_messages)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`
+	_, err = conn.ExecContext(ctx, query, u.UserID, u.CreatedAt, u.UpdatedAt,
+			u.ChatID, u.Email, u.Name, u.Username, u.HasUnreadMessages)
+	return
+}
+
+func (t *TgBot) saveMessage(ctx context.Context, conn *sql.Conn, m *Message) (err error) {
+	query := `INSERT INTO messages(user_id, message_id, is_broadcast,
+			from_admin, created_at, updated_at, text, reply_to_message)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`
+	_, err = conn.ExecContext(ctx, query, m.UserID, m.MessageID, false,
+		false, time.Now(), time.Now(), m.Text, m.ReplyToMessage)
+	if err != nil {
+		return err
+	}
+	query = `UPDATE users SET last_message_id=($1) WHERE user_id=($2)`
+	_, err = conn.ExecContext(ctx, query, m.MessageID, m.UserID)
+	return
+}
+
+func (t *TgBot) parseMessage(message *tgbotapi.Message) *Message {
 	isBot := message.From.IsBot
 	m := Message{
 		FromAdmin: isBot,
@@ -279,4 +299,20 @@ func parseMessage(message *tgbotapi.Message) *Message {
 		}
 	}
 	return &m
+}
+
+// MockBot takes reader/writer (ex. goes os.Stdin and os.Stdout) and
+// simulates bot behavior and logic.
+type MockBot struct {
+	*BaseBot
+}
+
+// NewMockBot initializes bot for development/testing purposes
+func NewMockBot(r io.Reader, w io.Writer) (*MockBot, error) {
+	return &MockBot{}, nil
+}
+
+// Run ...
+func (m *MockBot) Run() {
+
 }

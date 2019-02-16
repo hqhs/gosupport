@@ -29,19 +29,41 @@ target_metadata = None
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
-Base = declarative_base()
+# class User(MetaData):
+#     __tablename__ = 'user'
+#     id = Column(Integer, primary_key=True)
+#     created_at = Column(DateTime)
+#     updated_at = Column(DateTime)
 
-class Admin(Base):
-    __tablename__ = 'admin'
-    email = Column(String(256), nullable=False)
+#     email = Column(String(256), nullable=True, index=True)
+#     user_id = Column(Integer, nullable=False, index=True)
+#     chat_id = Column(BigInteger, nullable=False)
+#     email = Column(String(256), index=True)
+#     name = Column(String(256))
+#     username = Column(String(256), index=True)
+#     has_unread_messages = Column(Boolean, nullable=False)
+#     authtoken = Column(String(64))
+#     is_authorized = Column(Boolean, nullable=False)
+#     is_token_expired = Column(Boolean, nullable=False)
+#     last_message_at = Column(DateTime, nullable=False)
+#     last_message = Column(Integer, ForeignKey('message.id'), nullable=False)
+#     user_photo_id = Column(String(512))
+#     is_active = Column(Boolean, nullable=False)
 
-class User(Base):
-    __tablename__ = 'user'
-    email = Column(String(256), nullable=True)
 
-class Message(Base):
-    __tablename__ = 'message'
-    text = Column(String(4000), nullable=True)
+# class Message(MetaData):
+#     __tablename__ = 'message'
+#     id = Column(Integer, primary_key=True)
+#     created_at = Column(DateTime)
+#     updated_at = Column(DateTime)
+
+#     user_id = Column(Integer, ForeignKey('user.id'), nullable=False,
+#                      index=True)
+#     message_id = Column(Integer, nullable=False, index=True)
+#     chat_id = Column(BigInteger, nullable=False)
+#     text = Column(String(4000), nullable=True)
+#     document_id = Column(String(512), nullable=True)
+#     photo_id = Column(String(512), nullable=True)
 
 
 def run_migrations_offline():

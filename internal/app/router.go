@@ -23,6 +23,7 @@ func (s *Server) ListenAndServe() {
 	s.botGroup.Wait()
 	ctx := context.Background()
 	server.Shutdown(ctx)
+	s.DB.Close()
 }
 
 func (s *Server) Shutdown() {

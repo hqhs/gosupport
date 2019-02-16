@@ -57,6 +57,7 @@ func (t *Templator) Render(w http.ResponseWriter, name string, data map[string]i
 	return nil
 }
 
+
 // GetTemplates return slice of available templates
 func (t *Templator) GetTemplates() []string {
 	a := make([]string, 0)

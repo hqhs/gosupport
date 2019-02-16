@@ -69,6 +69,7 @@ var serveCmd = &cobra.Command{
 	Long: `Initialize database, mailer, bots, and routes to start answering http requests`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
+		// TODO use context for initialization process
 		// TODO allow user set logger level (better to do it globally)
 		l := kitlog.NewLogfmtLogger(os.Stdout)
 		c := checker{l, nil}
@@ -80,7 +81,7 @@ var serveCmd = &cobra.Command{
 		l.Log("msg", "Mock mailer is used")
 		// db := app.NewMockDatabase()
 		// l.Log("msg", "Mock database is used. Data is not persistent")
-		db, err := app.NewGormDatabase(options.DbOptions)
+		db, err := app.InitPostgres(options.DbOptions)
 		c.Add(err)
 		l.Log("msg", "Connected to database")
 		if options.ServeStatic {

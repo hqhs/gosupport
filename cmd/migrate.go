@@ -3,7 +3,6 @@ package cmd
 import (
 	"os"
 
-	"github.com/hqhs/gosupport/internal/app"
 	"github.com/spf13/cobra"
 	kitlog "github.com/go-kit/kit/log"
 )
@@ -27,16 +26,18 @@ var migrateCmd = &cobra.Command{
 	Short: "Use gorm auto migration feature for database schema",
 	Long: ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		var err error
 		// TODO allow user set logger level (better to do it globally)
 		l := kitlog.NewLogfmtLogger(os.Stdout)
 		l.Log("root", options.Root, "address", options.Domain + ":" + options.Port)
-		gormDB, err := app.NewGormDatabase(options.DbOptions)
-		if err != nil {
-			l.Log("panic", err)
-			l.Log("status", "exiting", "message", "Fix 'panic' errors above to serve http requests")
-			os.Exit(1)
-		}
-		gormDB.AutoMigrate(&app.Admin{}, &app.User{}, &app.Message{})
+		// gormDB, err := app.NewGormDatabase(options.DbOptions)
+		// if err != nil {
+		// 	l.Log("panic", err)
+		// 	l.Log("status", "exiting", "message", "Fix 'panic' errors above to serve http requests")
+		// 	os.Exit(1)
+		// }
+		// gormDB.AutoMigrate(&app.Admin{}, &app.User{}, &app.Message{})
+		// gormDB.Model(&app.User{}).AddForeignKey(
+		// 	"last_message_id", "messages(id)", "RESTRICT", "RESTRICT")
+		// gormDB.AutoMigrate(&app.Admin{}, &app.User{}, &app.Message{})
 	},
 }
