@@ -8,7 +8,7 @@ RUN apk add --update git
 
 WORKDIR /app
 
-ADD ./vendor /app/
+ADD ./vendor /app/vendor
 
 ADD . .
 RUN go build .
