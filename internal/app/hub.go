@@ -1,9 +1,7 @@
 package app
 
-import (
-	"encoding/json"
-	"net/http"
-)
+import "net/http"
+
 
 // ServeWs handles websocket requests from the peer.
 func (s *Server) ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
@@ -25,18 +23,16 @@ type Hub struct {
 	// Registered clients.
 	clients map[*Client]bool
 	// Inbound messages from the customers.
-	broadcast <-chan Message
-	resend chan []byte
+	broadcast chan []byte
 	// Register requests from the clients.
 	register chan *Client
 	// Unregister requests from clients.
 	unregister chan *Client
 }
 
-func NewHub(b <-chan Message) *Hub {
+func NewHub(b chan []byte) *Hub {
 	return &Hub{
 		broadcast:  b,
-		resend:     make(chan []byte),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		clients:    make(map[*Client]bool),
@@ -53,20 +49,10 @@ func (h *Hub) run() {
 				delete(h.clients, client)
 				close(client.send)
 			}
-		case payload := <-h.resend:
-			for client := range h.clients {
-				select {
-				case client.send <- payload:
-				default:
-					close(client.send)
-					delete(h.clients, client)
-				}
-			}
 		case message := <-h.broadcast:
 			for client := range h.clients {
-				payload, _ := json.Marshal(message)
 				select {
-				case client.send <- payload:
+				case client.send <- message:
 				default:
 					close(client.send)
 					delete(h.clients, client)

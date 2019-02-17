@@ -3,9 +3,11 @@ package app
 import (
 	"fmt"
 	"net/http"
+	"time"
 	"io/ioutil"
 	"strconv"
 	"database/sql"
+	"encoding/json"
 
 	"github.com/go-chi/render"
 	"github.com/go-chi/chi"
@@ -194,12 +196,36 @@ func (s *Server) apiGetUserMessages(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func apiSendMessage(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiSendMessage(w http.ResponseWriter, r *http.Request) {
+	data := &messagePayload{}
+	if err := render.Bind(r, data); err != nil {
+		render.Render(w, r, errInvalid)
+		return
+	}
+	msg := data.Message
+	msg.FromAdmin = true
+	msg.CreatedAt = time.Now()
+	msg.UpdatedAt = time.Now()
+	msg.MessageID = 100
+	msg.ChatID = int64(msg.UserID)
+	ctx := r.Context()
+	// TODO save to database
+	// err := dbCreateMessage(ctx, s.DB, msg)
 
+	// send threw bot to customer
+	botHash, ok := ctx.Value(botKey).(string);
+	if !ok {
+		s.logger.Log("err", "botKey is missing in context")
+		render.Render(w, r, errInternal)
+		return
+	}
+	s.conns[botHash].Output <- msg
+	payload, _ := json.Marshal(msg)
+	s.hubs[botHash].broadcast <- payload
 }
 
 func (s *Server) renderError(w http.ResponseWriter, t string, err error) {
-	// FIXME not all errors should be logged
+	// FIXME not all errors should be rendered
 	s.logger.Log("error", err.Error(), "then", fmt.Sprintf("during rendering %s template", t))
 	s.templator.Render(w, "login.tmpl", map[string]interface{}{"Error": err.Error()})
 }

@@ -56,7 +56,7 @@ func (s *Server) authorizedOnlyRoutes() chi.Router {
 			// r.Use(s.userCtx) TODO is this really necessary?
 			r.Get("/", apiGetUserInfo)
 			r.Get("/messages", s.apiGetUserMessages)
-			r.Post("/messages", apiSendMessage)
+			r.Post("/messages", s.apiSendMessage)
 		})
 	})
 	r.Get("/ws", func(w http.ResponseWriter, r *http.Request) {

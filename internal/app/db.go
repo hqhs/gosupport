@@ -1,9 +1,9 @@
 package app
 
 import (
-	"fmt"
 	"context"
 	"database/sql"
+	"fmt"
 
 	_ "github.com/lib/pq" // postgres driver
 )
@@ -23,7 +23,6 @@ type DbOptions struct {
 	Port     string
 	DbName   string
 }
-
 
 func InitPostgres(ctx context.Context, o DbOptions) (db *sql.DB, err error) {
 	// TODO reuse context from init
@@ -46,6 +45,15 @@ func dbCreateAdmin(ctx context.Context, db *sql.DB, a *Admin) (err error) {
 	_, err = db.ExecContext(ctx, query, a.CreatedAt, a.UpdatedAt,
 		a.Email, a.Name, a.HashedPassword, a.IsSuperUser,
 		a.IsActive, a.EmailConfirmed, a.AuthToken, a.PasswordResetToken)
+	return
+}
+
+func dbCreateMessage(ctx context.Context, db *sql.DB, m *Message) (err error) {
+	query := `INSERT INTO messages(user_id, message_id, is_broadcast, from_admin
+			created_at, updated_at, text, reply_to_message, document_id, photo_id)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`
+	_, err = db.ExecContext(ctx, query, m.UserID, m.MessageID, m.IsBroadcast, m.FromAdmin,
+		m.CreatedAt, m.UpdatedAt, m.Text, m.ReplyToMessage, m.DocumentID, m.PhotoID)
 	return
 }
 
@@ -81,6 +89,7 @@ func dbListUsers(ctx context.Context, db *sql.DB, page int) ([]User, error) {
 
 func dbListUserMessages(ctx context.Context, db *sql.DB, userID int, page int) ([]Message, error) {
 	messages := make([]Message, 0) // FIXME add actual afterloading of messages, currently whole history is loaded
+	// FIXME add ORDER BY clause
 	query := `SELECT message_id, is_broadcast, from_admin, created_at,
 			updated_at, text, reply_to_message, document_id, photo_id FROM messages WHERE user_id=$1`
 	rows, err := db.QueryContext(ctx, query, userID)
@@ -91,7 +100,7 @@ func dbListUserMessages(ctx context.Context, db *sql.DB, userID int, page int) (
 	for rows.Next() {
 		msg := Message{}
 		if err := rows.Scan(&msg.MessageID, &msg.IsBroadcast, &msg.FromAdmin, &msg.CreatedAt,
-		&msg.UpdatedAt, &msg.Text, &msg.ReplyToMessage, &msg.DocumentID, &msg.PhotoID); err != nil {
+			&msg.UpdatedAt, &msg.Text, &msg.ReplyToMessage, &msg.DocumentID, &msg.PhotoID); err != nil {
 			return messages, err
 		}
 		messages = append(messages, msg)
@@ -101,5 +110,4 @@ func dbListUserMessages(ctx context.Context, db *sql.DB, userID int, page int) (
 
 // NOTE Use sqlmock database instead
 type mockDatabase struct {
-
 }

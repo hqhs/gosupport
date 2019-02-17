@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"net/http"
+	"errors"
 	"net/mail"
 	"strings"
 
@@ -89,16 +90,23 @@ func (s *Server) newUserListResponse(users []User) []render.Renderer {
 	return list
 }
 
-type messageResponse struct {
+type messagePayload struct {
 	Message
 }
 
-func (m messageResponse) Render(w http.ResponseWriter, r *http.Request) error {
+func (m messagePayload) Bind(r *http.Request) error {
+	if m.UserID == 0 {
+		return errors.New("Missing user id field")
+	}
 	return nil
 }
 
-func (s *Server) newMessageResponse(m Message) messageResponse {
-	return messageResponse{m}
+func (m messagePayload) Render(w http.ResponseWriter, r *http.Request) error {
+	return nil
+}
+
+func (s *Server) newMessageResponse(m Message) messagePayload {
+	return messagePayload{m}
 }
 
 func (s *Server) newMessageListResponse(msgs []Message) []render.Renderer {

@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"io"
 	"time"
 
@@ -31,7 +32,7 @@ type Bot interface {
 }
 
 type Connector struct {
-	Input  <-chan Message // messages from Customers
+	Input  chan []byte // messages from Customers
 	Output chan<- Message // messages to Customers
 	Error  chan error     // Errors for admins
 }
@@ -70,7 +71,7 @@ type BaseBot struct {
 	// below is duplicating of Connector channels, but since real bots
 	// inherit base bot and used as interfaces, whose channes needs to be wrapped
 	// in separate struct for further usage
-	Input  chan Message // messages from Customers
+	Input  chan []byte // messages from Customers
 	Output chan Message // messages to Customers
 	Error  chan error   // Errors for admins
 }
@@ -114,7 +115,7 @@ func NewTgBot(ctx context.Context, s *Server, token string) (t *TgBot, err error
 		s:      s,
 		token:  token,
 		quit:   make(chan struct{}),
-		Input:  make(chan Message),
+		Input:  make(chan []byte),
 		Output: make(chan Message),
 		Error:  make(chan error),
 	}
@@ -153,6 +154,7 @@ func (t *TgBot) Run(onExit func()) {
 		select {
 		case m := <-t.Output:
 			<-throttle
+			t.s.logger.Log("sending", m.Text)
 			go t.sendMessage(m)
 		case u := <-t.upd:
 			go t.processUpdate(u)
@@ -165,16 +167,18 @@ func (t *TgBot) Run(onExit func()) {
 }
 
 func (t *TgBot) sendMessage(m Message) {
-	toSend := tgbotapi.NewMessage(m.ChatID, m.Text)
-	response, err := t.api.Send(toSend)
+	// FIXME this little hash works, but for real world
+	// we need to fetch user from message.UserID and then provide user.ChatID
+	toSend := tgbotapi.NewMessage(int64(m.UserID), m.Text)
+	_, err := t.api.Send(toSend)
 	if err != nil {
 		t.s.logger.Log("err", err, "then", "during sending message from admin to user")
 	}
-	resend := t.parseMessage(&response)
 	// FIXME save messages from dashboard
 	// d.SaveMessage(int(message.ChatID), m)
 	// broadcast for other admins
-	t.Input <- *resend
+	// resend := t.parseMessage(&response)
+	// t.Input <- *resend
 }
 
 func (t *TgBot) GetFileDirectURL(fileID string) (string, error) {
@@ -222,11 +226,12 @@ func (t *TgBot) processUpdate(u tgbotapi.Update) {
 		goto response
 	}
 	reply = "Resending your message to admins..."
-	t.Input <- *msg
 response:
 	output := tgbotapi.NewMessage(u.Message.Chat.ID, reply)
 	output.ReplyToMessageID = u.Message.MessageID
 	t.api.Send(output)
+	payload, _ := json.Marshal(*msg)
+	t.Input <- payload
 }
 
 func (t *TgBot) parseUserInfo(u *User, update tgbotapi.Update) {

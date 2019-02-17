@@ -47,8 +47,9 @@ def upgrade():
     )
     op.create_table(
         'messages',
+        sa.Column('id', sa.Integer, primary_key=True),
         sa.Column('user_id', sa.Integer, sa.ForeignKey('users.user_id', ondelete="CASCADE"), nullable=False, index=True),
-        sa.Column('message_id', sa.Integer, primary_key=True),
+        sa.Column('message_id', sa.Integer, index=True, unique=True),
         sa.Column('is_broadcast', sa.Boolean, nullable=False),
         sa.Column('from_admin', sa.Boolean, nullable=False),
         sa.Column('created_at', sa.DateTime),
