@@ -168,13 +168,11 @@ var serveCmd = &cobra.Command{
 		go func() {
 			<-sigs
 			// notify all bots to exit
-			server.StopBots()
 			// Quit server, server will block all incoming websocket messages,
 			// but continue to send updates to dashboard from tg (then bots are
 			// still quitting) and then bots are done, server will stop itself
 			server.Shutdown()
 		}()
-		server.RunBots()
 		server.ListenAndServe()
 		l.Log("msg", "Bye!")
 	},

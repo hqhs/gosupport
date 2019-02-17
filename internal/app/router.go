@@ -2,33 +2,10 @@ package app
 
 import (
 	"net/http"
-	"context"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 )
-
-// ServeRouter starts http server
-func (s *Server) ListenAndServe() {
-	s.logger.Log("status", "Starting serving routes")
-	server := &http.Server{Addr: s.port, Handler: s.router}
-	go func() {
-		if err := server.ListenAndServe(); err != nil {
-			s.logger.Log("err", err, "msg", "Gracefully shutting down the server")
-			return
-		}
-	}()
-	<-s.QuitCh
-	s.logger.Log("status", "Waiting then all bots are done...")
-	s.botGroup.Wait()
-	ctx := context.Background()
-	server.Shutdown(ctx)
-	s.DB.Close()
-}
-
-func (s *Server) Shutdown() {
-	close(s.QuitCh)
-}
 
 // InitRoutes initializes url schema. Separate function argument
 // for routes is used to escape bugs there server tries to init

@@ -147,8 +147,13 @@ func (t *TgBot) Run(onExit func()) {
 	// Telegram servers is blocked in some countries and connecting may take
 	// a lot of time. But graceful reload should stop setup, therefore separate
 	// setup method.
+	rate := time.Second / 30
+	throttle := time.Tick(rate)
 	for {
 		select {
+		case m := <-t.Output:
+			<-throttle
+			go t.sendMessage(m)
 		case u := <-t.upd:
 			go t.processUpdate(u)
 		case <-t.quit:
@@ -157,6 +162,19 @@ func (t *TgBot) Run(onExit func()) {
 			return
 		}
 	}
+}
+
+func (t *TgBot) sendMessage(m Message) {
+	toSend := tgbotapi.NewMessage(m.ChatID, m.Text)
+	response, err := t.api.Send(toSend)
+	if err != nil {
+		t.s.logger.Log("err", err, "then", "during sending message from admin to user")
+	}
+	resend := t.parseMessage(&response)
+	// FIXME save messages from dashboard
+	// d.SaveMessage(int(message.ChatID), m)
+	// broadcast for other admins
+	t.Input <- *resend
 }
 
 func (t *TgBot) GetFileDirectURL(fileID string) (string, error) {
@@ -204,6 +222,7 @@ func (t *TgBot) processUpdate(u tgbotapi.Update) {
 		goto response
 	}
 	reply = "Resending your message to admins..."
+	t.Input <- *msg
 response:
 	output := tgbotapi.NewMessage(u.Message.Chat.ID, reply)
 	output.ReplyToMessageID = u.Message.MessageID
