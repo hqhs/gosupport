@@ -1,7 +1,7 @@
 Employee & Customer support dashboard
 ===
 
-![](.examples/example.gif)
+![](.examples/better_example.gif)
 
 # Setup
 
