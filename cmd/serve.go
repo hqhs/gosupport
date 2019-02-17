@@ -3,10 +3,13 @@ package cmd
 import (
 	"strings"
 	"fmt"
+	"time"
+	"context"
 	"os"
 	"syscall"
 	"os/signal"
 	"path/filepath"
+	"database/sql"
 
 	"github.com/hqhs/gosupport/internal/app"
 	"github.com/spf13/cobra"
@@ -68,76 +71,111 @@ var serveCmd = &cobra.Command{
 	Short: "Start http server",
 	Long: `Initialize database, mailer, bots, and routes to start answering http requests`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var err error
-		// TODO use context for initialization process
-		// TODO allow user set logger level (better to do it globally)
 		l := kitlog.NewLogfmtLogger(os.Stdout)
-		c := checker{l, nil}
-		l.Log("root", options.Root, "address", options.Domain + ":" + options.Port)
-		t, err := templator.NewTemplator(options.Root)
-		c.Add(err)
-		l.Log("templates", fmt.Sprintf("%+v", t.GetTemplates()))
-		m := app.NewMockMailer(t, l)
-		l.Log("msg", "Mock mailer is used")
-		// db := app.NewMockDatabase()
-		// l.Log("msg", "Mock database is used. Data is not persistent")
-		db, err := app.InitPostgres(options.DbOptions)
-		c.Add(err)
-		l.Log("msg", "Connected to database")
-		if options.ServeStatic {
-			staticDir := filepath.Join(options.Root, options.StaticFiles)
-			_, err = os.Stat(staticDir)
-			if os.IsNotExist(err) {
-				c.Add(err)
-			} else {
-				l.Log("StaticDir", staticDir)
-			}
-		} else {
-			options.StaticFiles = ""
-			l.Log("msg", "Serving static files disabled")
-		}
-		if c.err != nil {
-			l.Log("status", "exiting", "message", "Fix 'panic' errors above to serve http requests")
-			os.Exit(1)
-		}
-		s := app.InitServer(l, t, m, db, options)
-		// TODO start polling messages from bots
-		if len(options.TgBotTokens) > 0 {
-			tok := strings.Split(options.TgBotTokens, ",")
-			if len(tok) > 1 {
-				l.Log("err", "Yet only one bot at a time is supported")
-				os.Exit(1)
-			}
-			// Docker style management, since there's no guarantees what bot name
-			// is unique, and I dont want to perform complex manipulations with
-			// name/type, just generate 8 symbol md5 hashes of auth tokens and
-			// store bots as map[hash]*Bot. It's better to use Bot interface for
-			// state management only, therefore separate Connector type with
-			// three channels : receive-only, write-only, and errors. Receiver
-			// returns new messages from bot, which are broadcasted to socket hubs
-			// later, and writer sends messages to chats with customers. Then
-			// something goes wrong on either side, send err, try to notificate
-			// user about it if hub is working and log it.
-			t, err := app.NewTgBot(s, tok[0])
-			if err != nil {
-				l.Log("err", err, "then", "during initializing new telegram bot")
-				os.Exit(1)
-			}
-			s.Add(t)
-		}
+		ready := make(chan struct{})
+		initErr := make(chan error, 3)
 		sigs := make(chan os.Signal, 1)
+		var server *app.Server
+
+		ctx, stopBootstrap := context.WithTimeout(context.Background(), 5 * time.Second)
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+		go func() {
+			// everything needed to init server
+			var t *templator.Templator
+			var mailer app.Mailer
+			var database *sql.DB
+			var err error
+
+			l.Log("root", options.Root, "address", options.Domain + ":" + options.Port)
+			t, err = templator.NewTemplator(options.Root)
+			if err == nil {
+				l.Log("status", "templator ready", "templates", fmt.Sprintf("%+v", t.GetTemplates()))
+				mailer = app.NewMockMailer(t, l)
+				l.Log("msg", "Mock mailer is used")
+			}
+			initErr <- err
+
+			database, err = app.InitPostgres(ctx, options.DbOptions)
+			if err != nil {
+				initErr <- err
+			}
+
+			if options.ServeStatic {
+				staticDir := filepath.Join(options.Root, options.StaticFiles)
+				_, err := os.Stat(staticDir)
+				if os.IsNotExist(err) {
+					initErr <- err
+				} else {
+					l.Log("StaticDir", staticDir)
+				}
+			} else {
+				options.StaticFiles = ""
+				l.Log("msg", "Serving static files disabled")
+			}
+
+			close(initErr)
+			for err := range initErr {
+				if err != nil {
+					l.Log("panic", err.Error(), "status", "exiting")
+					stopBootstrap()
+					return
+				}
+			}
+
+			server = app.InitServer(l, t, mailer, database, options)
+
+			if len(options.TgBotTokens) > 0 {
+				tok := strings.Split(options.TgBotTokens, ",")
+				if len(tok) > 1 {
+					l.Log("err", "Yet only one bot at a time is supported")
+					os.Exit(1)
+				}
+				// Docker style management, since there's no guarantees what bot name
+				// is unique, and I dont want to perform complex manipulations with
+				// name/type, just generate 8 symbol md5 hashes of auth tokens and
+				// store bots as map[hash]*Bot. It's better to use Bot interface for
+				// state management only, therefore separate Connector type with
+				// three channels : receive-only, write-only, and errors. Receiver
+				// returns new messages from bot, which are broadcasted to socket hubs
+				// later, and writer sends messages to chats with customers. Then
+				// something goes wrong on either side, send err, try to notificate
+				// user about it if hub is working and log it.
+				t, err := app.NewTgBot(ctx, server, tok[0])
+				if err != nil {
+					l.Log("err", err, "then", "during initializing new telegram bot")
+					os.Exit(1)
+				}
+				server.Add(t)
+			}
+
+			ready <- struct{}{}
+		}()
+
+		select {
+		case <-ctx.Done():
+			stopBootstrap()
+			l.Log("status", "exiting", "msg", "fix 'panic' error above")
+			return
+		case <-sigs:
+			stopBootstrap()
+			l.Log("msg", "received syscall sygnal during bootstrapping", "status", "exiting")
+			return
+		case <-ready:
+			l.Log("status", "server is ready to accept connections")
+		}
+		// TODO allow user set logger level (better to do it globally)
 		go func() {
 			<-sigs
 			// notify all bots to exit
-			s.StopBots()
+			server.StopBots()
 			// Quit server, server will block all incoming websocket messages,
 			// but continue to send updates to dashboard from tg (then bots are
 			// still quitting) and then bots are done, server will stop itself
-			s.Shutdown()
+			server.Shutdown()
 		}()
-		s.RunBots()
-		s.ListenAndServe()
+		server.RunBots()
+		server.ListenAndServe()
 		l.Log("msg", "Bye!")
 	},
 }

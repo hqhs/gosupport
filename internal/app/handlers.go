@@ -126,6 +126,7 @@ func (s *Server) fileProxy(w http.ResponseWriter, r *http.Request) {
 		render.Render(w, r, errInternal)
 		return
 	}
+	// FIXME site should not be started until all bots are connected
 	s.logger.Log("botHash", botHash)
 	bot := s.bots[botHash]
 	URL, err := bot.GetFileDirectURL(fileID)

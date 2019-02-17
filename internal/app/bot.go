@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"time"
 
@@ -29,39 +28,6 @@ type Bot interface {
 	Connector() *Connector
 	HashToken(int) string
 	GetFileDirectURL(string) (string, error)
-}
-
-func (s *Server) Add(b Bot) {
-	// Docker style management with unique hashes. Since bot name cannot be fetched
-	// before request to bot api, first 8 characters from hashed token is used.
-	var hash string
-	for i := 0; ; i++ {
-		hash = b.HashToken(i)
-		if _, ok := s.conns[hash]; !ok {
-			s.conns[hash] = b.Connector()
-			s.logger.Log("msg", fmt.Sprintf("Added connector with hash %s", hash))
-			break
-		}
-	}
-	s.bots[hash] = b
-	// TODO fix broadcasting
-	broadcast := make(chan []byte)
-	s.hubs[hash] = NewHub(broadcast)
-}
-
-func (s *Server) RunBots() {
-	for _, b := range s.bots {
-		onExit := func() { s.botGroup.Add(-1) }
-		go b.Run(onExit)
-		s.botGroup.Add(1)
-	}
-}
-
-func (s *Server) StopBots() {
-	s.logger.Log("status", "Performing graceful shutdown of bots...")
-	for _, b := range s.bots {
-		b.Stop()
-	}
 }
 
 type Connector struct {
@@ -142,7 +108,7 @@ type TgBot struct {
 }
 
 // NewTgBot ... FIXME
-func NewTgBot(s *Server, token string) (t *TgBot, err error) {
+func NewTgBot(ctx context.Context, s *Server, token string) (t *TgBot, err error) {
 	// TODO it's better to calc hashes here
 	base := &BaseBot{
 		s:      s,
@@ -153,17 +119,10 @@ func NewTgBot(s *Server, token string) (t *TgBot, err error) {
 		Error:  make(chan error),
 	}
 	t = &TgBot{BaseBot: base}
-	t.s.logger.Log("status", "Bot initialized")
-	return
-}
 
-// Run starts polling on telegram bot
-func (t *TgBot) Run(onExit func()) {
-	// Telegram servers is blocked in some countries and connecting may take
-	// a lot of time. But graceful reload should stop setup, therefore separate
-	// setup method.
-	setup := func(ready chan struct{}) {
-		t.s.logger.Log("status", fmt.Sprintf("Bot{%s} connecting to telegram api...", t.hash))
+	ready := make(chan struct{})
+	go func() {
+		t.s.logger.Log("status", "connecting to telegram api...")
 		var err error
 		if t.api, err = tgbotapi.NewBotAPI(t.token); err != nil {
 			return
@@ -172,13 +131,24 @@ func (t *TgBot) Run(onExit func()) {
 		u.Timeout = 5
 		t.upd, err = t.api.GetUpdatesChan(u)
 		ready <- struct{}{}
+	}()
+	select {
+	case <-ready:
+		t.s.logger.Log("status", "Bot initialized")
+		return
+	case <-ctx.Done():
+		t.s.logger.Log("msg", "exiting bot")
 	}
-	ready := make(chan struct{})
-	go setup(ready)
+	return
+}
+
+// Run starts polling on telegram bot
+func (t *TgBot) Run(onExit func()) {
+	// Telegram servers is blocked in some countries and connecting may take
+	// a lot of time. But graceful reload should stop setup, therefore separate
+	// setup method.
 	for {
 		select {
-		case <-ready:
-			t.s.logger.Log("msg", fmt.Sprintf("Started polling on telegram bot{%s}", t.hash))
 		case u := <-t.upd:
 			go t.processUpdate(u)
 		case <-t.quit:

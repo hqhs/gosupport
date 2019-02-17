@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"sync"
 	"database/sql"
 
@@ -79,4 +80,37 @@ func InitServer(
 	}
 	s.InitRoutes(chi.NewRouter(), o.StaticFiles)
 	return &s
+}
+
+func (s *Server) Add(b Bot) {
+	// Docker style management with unique hashes. Since bot name cannot be fetched
+	// before request to bot api, first 8 characters from hashed token is used.
+	var hash string
+	for i := 0; ; i++ {
+		hash = b.HashToken(i)
+		if _, ok := s.conns[hash]; !ok {
+			s.conns[hash] = b.Connector()
+			s.logger.Log("msg", fmt.Sprintf("Added connector with hash %s", hash))
+			break
+		}
+	}
+	s.bots[hash] = b
+	// TODO fix broadcasting
+	broadcast := make(chan []byte)
+	s.hubs[hash] = NewHub(broadcast)
+}
+
+func (s *Server) RunBots() {
+	for _, b := range s.bots {
+		onExit := func() { s.botGroup.Add(-1) }
+		go b.Run(onExit)
+		s.botGroup.Add(1)
+	}
+}
+
+func (s *Server) StopBots() {
+	s.logger.Log("status", "Performing graceful shutdown of bots...")
+	for _, b := range s.bots {
+		b.Stop()
+	}
 }

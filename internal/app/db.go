@@ -25,9 +25,8 @@ type DbOptions struct {
 }
 
 
-func InitPostgres(o DbOptions) (db *sql.DB, err error) {
+func InitPostgres(ctx context.Context, o DbOptions) (db *sql.DB, err error) {
 	// TODO reuse context from init
-	ctx := context.Background()
 	url := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
 		o.Host, o.Port, o.User, o.DbName, o.Password)
 	fmt.Println("url: ", url)
