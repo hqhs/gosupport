@@ -11,7 +11,6 @@ import (
 
 	"github.com/go-chi/render"
 	"github.com/go-chi/chi"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"golang.org/x/crypto/bcrypt"
 	"github.com/dgrijalva/jwt-go"
 )
