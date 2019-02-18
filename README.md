@@ -53,6 +53,9 @@ backend language.
   websockets](https://github.com/gorilla/websocket), and various social
   network/messangers api wrappers. 
 - Preact for frontend with some templates rendering.
+Those are the tools I used in active demo development stage:
+- Alembic & Sqlalchemy for migrations generation.
+- Bootstrap templates.
 
 As you can see, then choosing between some nice and large library (such as
 [gorm](https://github.com/jinzhu/gorm)), and Go STD I'm almost always choose
