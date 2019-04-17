@@ -31,9 +31,9 @@ $ ./gosupport serve \
 
 # Project status
 
-This was one of the first real-world appliations I made in go months ago. Since
+This was one of the first real-world applications I made in go months ago. Since
 then I've learned a lot and done some refactoring before open sourcing it. It's 
-not ready for use in production yet, but I'm looking forward to make it better.
+not ready for use in production yet, but I'm looking forward to making it better.
 
 # Motivation
 
@@ -41,7 +41,7 @@ After hours spent on github I haven't found useful open source techsupport (also
 "helpdesk") dashboards with messangers/social networks integration as primary
 feature. There are some like [zammad](https://github.com/zammad/zammad), but it
 requires 5 docker containers to run including Elasticsearch (sic!) and chats
-works only with webhooks (which in turn requires seperate static IP even for
+work only with webhooks (which in turn requires seperate static IP even for
 development). Time passed and I decided to write it by myself with Go as primary 
 backend language.
 
@@ -67,7 +67,7 @@ goes on "under the hood".
 # On the road to beta release
 
 My primary pain is frontend part, all preact components currenty live in single
-main.js file, and it help to make it useful is essential. Those are the features 
+main.js file, and it helps to make it useful (that is essential). Those are the features 
 I plan to do before spending time on advertasing (writing on reddit/go mailing list):
 - Basic admin management (deleting & blocking & creating new admins)
 - Message & User search purely with postgres.
@@ -78,8 +78,8 @@ I plan to do before spending time on advertasing (writing on reddit/go mailing l
 
 # Contributing
 
-If you feel somewhat interested, feel free to open issue/write me in
+If you feel somewhat interested, feel free to open issue/write to me on
 [twitter](https://twitter.com/hqhqhs) or [telegram](http://t.me/hqhqhs). I'm
 going to make pause in active development after beta and try to bring some
-interest in project, and if I fail I just move on to some other stuff and
-project becames "yet another codebase for the sake of codebase" :) 
+interest in project, and if I fail I'll just move on to some other stuff and
+project will become "yet another codebase for the sake of codebase" :) 
