@@ -83,3 +83,5 @@ If you feel somewhat interested, feel free to open issue/write to me on
 going to make pause in active development after beta and try to bring some
 interest in project, and if I fail I'll just move on to some other stuff and
 project will become "yet another codebase for the sake of codebase" :) 
+
+But we want to work hard on it ;)
